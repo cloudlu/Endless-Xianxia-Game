@@ -105,6 +105,16 @@ class EndlessCultivationGame {
         const DailyQuestSystemClass = typeof window !== 'undefined' ? window.DailyQuestSystem : require('./dailyQuest');
         this.dailyQuestSystem = new DailyQuestSystemClass(this);
 
+        // 初始化剧情节拍引擎（环境叙事）
+        if (typeof window !== 'undefined' && window.StoryBeatEngine) {
+            this.storyBeatEngine = new window.StoryBeatEngine(this);
+        }
+
+        // 初始化好感度系统
+        if (typeof window !== 'undefined' && window.AffinitySystem) {
+            this.affinitySystem = new window.AffinitySystem(this);
+        }
+
         // 初始化VIP系统
         const VIPSystemClass = typeof window !== 'undefined' ? window.VIPSystem : require('./vipSystem').VIPSystem;
         this.vipSystem = new VIPSystemClass(this);
@@ -392,7 +402,13 @@ class EndlessCultivationGame {
 
             // 保存metadata引用供后续使用
             this.metadata = metadata;
-            
+
+            // 合并剧情数据（从 story-data.js 加载的 window.StoryData）
+            if (typeof window !== 'undefined' && window.StoryData?.mainStoryScenes) {
+                this.metadata.storyScenes = this.metadata.storyScenes || {};
+                this.metadata.storyScenes.scenes = window.StoryData.mainStoryScenes;
+            }
+
             // 添加辅助方法
             this.metadata.getSkillById = function(skillId) {
                 // 从技能树系统中查找技能
@@ -1816,56 +1832,41 @@ class EndlessCultivationGame {
             this.mainQuestSystem.hideMainQuestPanel();
         });
 
-        // 主线任务标签页切换
-        bindEvent('#quest-tab-current-btn', 'click', () => {
-            const currentContent = document.getElementById('quest-tab-current-content');
-            const storyContent = document.getElementById('quest-tab-story-content');
-            const dailyContent = document.getElementById('quest-tab-daily-content');
-            const currentBtn = document.getElementById('quest-tab-current-btn');
-            const storyBtn = document.getElementById('quest-tab-story-btn');
-            const dailyBtn = document.getElementById('quest-tab-daily-btn');
-            if (currentContent) currentContent.classList.remove('hidden');
-            if (storyContent) storyContent.classList.add('hidden');
-            if (dailyContent) dailyContent.classList.add('hidden');
-            if (currentBtn) { currentBtn.classList.add('text-gold', 'border-b-2', 'border-gold', 'font-medium'); currentBtn.classList.remove('text-white/50'); }
-            if (storyBtn) { storyBtn.classList.remove('text-gold', 'border-b-2', 'border-gold', 'font-medium'); storyBtn.classList.add('text-white/50'); }
-            if (dailyBtn) { dailyBtn.classList.remove('text-gold', 'border-b-2', 'border-gold', 'font-medium'); dailyBtn.classList.add('text-white/50'); }
-        });
-
-        bindEvent('#quest-tab-story-btn', 'click', () => {
-            const currentContent = document.getElementById('quest-tab-current-content');
-            const storyContent = document.getElementById('quest-tab-story-content');
-            const dailyContent = document.getElementById('quest-tab-daily-content');
-            const currentBtn = document.getElementById('quest-tab-current-btn');
-            const storyBtn = document.getElementById('quest-tab-story-btn');
-            const dailyBtn = document.getElementById('quest-tab-daily-btn');
-            if (currentContent) currentContent.classList.add('hidden');
-            if (storyContent) storyContent.classList.remove('hidden');
-            if (dailyContent) dailyContent.classList.add('hidden');
-            if (storyBtn) { storyBtn.classList.add('text-gold', 'border-b-2', 'border-gold', 'font-medium'); storyBtn.classList.remove('text-white/50'); }
-            if (currentBtn) { currentBtn.classList.remove('text-gold', 'border-b-2', 'border-gold', 'font-medium'); currentBtn.classList.add('text-white/50'); }
-            if (dailyBtn) { dailyBtn.classList.remove('text-gold', 'border-b-2', 'border-gold', 'font-medium'); dailyBtn.classList.add('text-white/50'); }
-            this.mainQuestSystem.showStoryReview();
-        });
-
-        bindEvent('#quest-tab-daily-btn', 'click', () => {
-            const currentContent = document.getElementById('quest-tab-current-content');
-            const storyContent = document.getElementById('quest-tab-story-content');
-            const dailyContent = document.getElementById('quest-tab-daily-content');
-            const currentBtn = document.getElementById('quest-tab-current-btn');
-            const storyBtn = document.getElementById('quest-tab-story-btn');
-            const dailyBtn = document.getElementById('quest-tab-daily-btn');
-            if (currentContent) currentContent.classList.add('hidden');
-            if (storyContent) storyContent.classList.add('hidden');
-            if (dailyContent) dailyContent.classList.remove('hidden');
-            if (dailyBtn) { dailyBtn.classList.add('text-gold', 'border-b-2', 'border-gold', 'font-medium'); dailyBtn.classList.remove('text-white/50'); }
-            if (currentBtn) { currentBtn.classList.remove('text-gold', 'border-b-2', 'border-gold', 'font-medium'); currentBtn.classList.add('text-white/50'); }
-            if (storyBtn) { storyBtn.classList.remove('text-gold', 'border-b-2', 'border-gold', 'font-medium'); storyBtn.classList.add('text-white/50'); }
-            this.dailyQuestSystem.updateDailyQuestUI();
-        });
+        // 主线任务标签页切换（5个tab统一管理）
+        const QUEST_TABS = [
+            { id: 'current',  content: 'quest-tab-current-content',  btn: 'quest-tab-current-btn',  onShow: () => this.mainQuestSystem.updateMainQuestUI?.() },
+            { id: 'story',    content: 'quest-tab-story-content',    btn: 'quest-tab-story-btn',    onShow: () => this.mainQuestSystem.showStoryReview() },
+            { id: 'side',     content: 'quest-tab-side-content',     btn: 'quest-tab-side-btn',     onShow: () => this.mainQuestSystem.showSideStories?.() },
+            { id: 'affinity', content: 'quest-tab-affinity-content', btn: 'quest-tab-affinity-btn', onShow: () => this.affinitySystem?.renderAffinityPanel() },
+            { id: 'daily',    content: 'quest-tab-daily-content',    btn: 'quest-tab-daily-btn',    onShow: () => this.dailyQuestSystem.updateDailyQuestUI() }
+        ];
+        const switchQuestTab = (activeId) => {
+            for (const tab of QUEST_TABS) {
+                const contentEl = document.getElementById(tab.content);
+                const btnEl = document.getElementById(tab.btn);
+                if (!contentEl || !btnEl) continue;
+                if (tab.id === activeId) {
+                    contentEl.classList.remove('hidden');
+                    btnEl.classList.add('text-gold', 'border-b-2', 'border-gold', 'font-medium');
+                    btnEl.classList.remove('text-white/50');
+                    try { tab.onShow?.(); } catch (e) { console.warn('tab onShow error', e); }
+                } else {
+                    contentEl.classList.add('hidden');
+                    btnEl.classList.remove('text-gold', 'border-b-2', 'border-gold', 'font-medium');
+                    btnEl.classList.add('text-white/50');
+                }
+            }
+        };
+        bindEvent('#quest-tab-current-btn', 'click', () => switchQuestTab('current'));
+        bindEvent('#quest-tab-story-btn', 'click', () => switchQuestTab('story'));
+        bindEvent('#quest-tab-side-btn', 'click', () => switchQuestTab('side'));
+        bindEvent('#quest-tab-affinity-btn', 'click', () => switchQuestTab('affinity'));
+        bindEvent('#quest-tab-daily-btn', 'click', () => switchQuestTab('daily'));
 
         // 剧情覆盖层点击翻页
-        bindEvent('#story-overlay', 'click', () => {
+        bindEvent('#story-overlay', 'click', (e) => {
+            // 如果点到了选项按钮，忽略（由选项自己处理）
+            if (e.target.closest('#story-choices')) return;
             this.mainQuestSystem.nextStoryPage();
         });
 
@@ -4080,6 +4081,7 @@ class EndlessCultivationGame {
     closePetManagementModal() {
         const modal = document.getElementById('pet-management-modal');
         if (modal) modal.classList.add('hidden');
+        if (this.petSystem) this.petSystem.disposePetPreview();
     }
 
     renderCollection(tab, realmIdx = 0, rarityIdx = 0) {
@@ -5008,7 +5010,23 @@ class EndlessCultivationGame {
                             };
                         }
 
-                        // 每日任务系统数据迁移（兼容旧存档）
+                        // 剧情系统新字段数据迁移（兼容旧存档）
+                        const ms = this.persistentState.mainStory;
+                        if (!ms.choices) ms.choices = {};
+                        if (!ms.flags) ms.flags = {};
+                        if (!ms.affinity) {
+                            ms.affinity = {
+                                '村长': 0, '师尊': 0, '师兄': 0, '弟子': 0,
+                                '长老': 0, '故友': 0, '天道之音': 0, '神秘旅者': 0, '小霜': 0
+                            };
+                        }
+                        if (ms.affinity['小霜'] === undefined) ms.affinity['小霜'] = 0;
+                        if (!ms.beatHistory) ms.beatHistory = {};
+                        if (!ms.loreEntries) ms.loreEntries = [];
+
+                        // 老存档好感度补发迁移：根据已观看的剧情场景补发对应角色好感度，
+                        // 使外传等好感度门槛内容可被解锁（仅执行一次）
+                        this._migrateStoryAffinityForVeteranSaves();
                         if (!this.persistentState.dailyQuests) {
                             this.persistentState.dailyQuests = {
                                 lastRefreshDate: null,
@@ -5205,7 +5223,15 @@ class EndlessCultivationGame {
         };
         this.persistentState.mainStory = {
             viewedScenes: [],
-            currentScene: null
+            currentScene: null,
+            choices: {},        // { 'sceneId:pageIndex': 'choiceText' }
+            flags: {},          // { 'flag_name': true/false }
+            affinity: {         // 好感度
+                '村长': 0, '师尊': 0, '师兄': 0, '弟子': 0,
+                '长老': 0, '故友': 0, '天道之音': 0, '神秘旅者': 0, '小霜': 0
+            },
+            beatHistory: {},    // { 'r0_s1': ['beat1','beat2'], totalBeatsThisRealm: 2, lastBeatTimestamp: 0 }
+            loreEntries: []     // 已解锁的图鉴条目
         };
 
         // 10. 初始化每日任务系统
@@ -5244,6 +5270,37 @@ class EndlessCultivationGame {
 
         console.log('新玩家初始化完成');
         this.addBattleLog('欢迎来到无尽修仙的世界！踏入修仙之路，成就无上仙道！');
+    }
+
+    /**
+     * 老存档好感度补发迁移（一次性）
+     * 旧玩家在新好感度系统上线前已看过剧情，按已观看的场景补发好感度，
+     * 使外传等好感度门槛内容可被解锁。
+     */
+    _migrateStoryAffinityForVeteranSaves() {
+        const ms = this.persistentState.mainStory;
+        if (!ms || ms._veteranAffinityGranted) return;
+
+        const map = (typeof window !== 'undefined' && window.StoryData?.sceneAffinityMap) || {};
+        const viewed = ms.viewedScenes || [];
+        const affinity = ms.affinity || (ms.affinity = {});
+
+        let granted = 0;
+        for (const sceneId of viewed) {
+            const bonus = map[sceneId];
+            if (!bonus) continue;
+            for (const [char, amount] of Object.entries(bonus)) {
+                if (affinity[char] === undefined) affinity[char] = 0;
+                affinity[char] += amount;
+                granted += amount;
+            }
+        }
+
+        ms._veteranAffinityGranted = true;
+        if (granted > 0) {
+            console.log(`[剧情迁移] 老存档补发好感度共 ${granted} 点，基于 ${viewed.length} 个已观看场景`);
+            this.saveGameState?.();
+        }
     }
 
     // 显示合成菜单
@@ -8225,6 +8282,10 @@ class EndlessCultivationGame {
                     // 敌人结束回调
                     () => {
                         this.updateHealthBars();
+                        // 宠物自动攻击（单敌人模式）
+                        if (this.transientState.pets && this.transientState.pets.length > 0) {
+                            this.executePetAttack();
+                        }
                     }
                 );
             }

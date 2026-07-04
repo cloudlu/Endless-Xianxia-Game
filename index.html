@@ -1574,6 +1574,13 @@
                         </div>
                         <span id="pet-hp-text" class="text-green-300 text-xs">0/0</span>
                     </div>
+                    <div class="flex items-center gap-2 mt-0.5">
+                        <span class="text-blue-400 text-xs" style="width:32px">能量</span>
+                        <div class="w-20 h-1 bg-gray-700 rounded-full overflow-hidden">
+                            <div id="pet-energy-bar" class="h-full bg-blue-500 transition-all duration-300"></div>
+                        </div>
+                        <span id="pet-energy-text" class="text-blue-300 text-xs">0/0</span>
+                    </div>
                 </div>
                 <!-- 3D场景将在这里渲染 -->
             </div>
@@ -1707,9 +1714,11 @@
                 </button>
             </div>
             <!-- 标签页切换 -->
-            <div class="flex gap-4 mb-4 border-b border-white/10 pb-2">
+            <div class="flex gap-4 mb-4 border-b border-white/10 pb-2 flex-wrap">
                 <button id="quest-tab-current-btn" class="text-gold border-b-2 border-gold pb-1 text-sm font-medium">当前任务</button>
                 <button id="quest-tab-story-btn" class="text-white/50 hover:text-white pb-1 text-sm">剧情回顾</button>
+                <button id="quest-tab-side-btn" class="text-white/50 hover:text-white pb-1 text-sm">外传故事</button>
+                <button id="quest-tab-affinity-btn" class="text-white/50 hover:text-white pb-1 text-sm">人物关系</button>
                 <button id="quest-tab-daily-btn" class="text-white/50 hover:text-white pb-1 text-sm">每日任务</button>
             </div>
             <!-- Tab 1: 当前任务 -->
@@ -1720,7 +1729,15 @@
             <div id="quest-tab-story-content" class="hidden">
                 <!-- 动态生成 -->
             </div>
-            <!-- Tab 3: 每日任务 -->
+            <!-- Tab 3: 外传故事 -->
+            <div id="quest-tab-side-content" class="hidden">
+                <!-- 动态生成 -->
+            </div>
+            <!-- Tab 4: 人物关系（好感度） -->
+            <div id="quest-tab-affinity-content" class="hidden">
+                <!-- 动态生成 -->
+            </div>
+            <!-- Tab 5: 每日任务 -->
             <div id="quest-tab-daily-content" class="hidden">
                 <!-- 动态生成 -->
             </div>
@@ -1743,10 +1760,12 @@
                 <div id="story-speaker" class="text-gold/80 text-sm font-medium mb-3 h-5"></div>
                 <div id="story-text" class="text-white/90 text-base leading-relaxed"></div>
                 <div id="story-page-indicator" class="text-white/30 text-xs mt-4 text-right"></div>
+                <!-- 分支选择（Phase 3） -->
+                <div id="story-choices" class="mt-4 space-y-2 hidden"></div>
             </div>
         </div>
 
-        <div class="mt-8 text-white/40 text-sm animate-pulse">点击继续</div>
+        <div id="story-continue-hint" class="mt-8 text-white/40 text-sm animate-pulse">点击继续</div>
     </div>
 
     <!-- ========== 每日任务奖励弹窗 ========== -->
@@ -1870,7 +1889,13 @@
                 </button>
             </div>
             <div id="pet-management-content">
-                <p class="text-gray-400 text-sm text-center py-4">还没有灵兽</p>
+                <!-- 3D预览区域 -->
+                <div id="pet-preview-container" class="w-full h-64 bg-black/30 rounded-lg mb-3 overflow-hidden relative">
+                    <canvas id="pet-preview-canvas" class="w-full h-full"></canvas>
+                </div>
+                <div id="pet-list-content">
+                    <p class="text-gray-400 text-sm text-center py-4">还没有灵兽</p>
+                </div>
             </div>
         </div>
     </div>
@@ -1905,6 +1930,10 @@
     <script type="module" src="event-manager-browser.js"></script>
 
     <!-- 游戏脚本: 独立类系统（需在 game.js 之前加载） -->
+    <script src="story-data.js"></script>
+    <script src="story-engine.js"></script>
+    <script src="story-beat-engine.js"></script>
+    <script src="affinitySystem.js"></script>
     <script src="equipment.js"></script>
     <script src="realmSkillSystem.js"></script>
     <script src="mainQuest.js"></script>
@@ -1915,6 +1944,7 @@
     <script src="vipSystem.js"></script>
     <script src="jadeShop.js"></script>
     <script src="collectionSystem.js"></script>
+    <script src="model-preview.js"></script>
     <script src="petSystem.js"></script>
     <script src="dungeon.js"></script>
     <!-- 纯函数式战斗引擎（需在 game.js 之前加载） -->

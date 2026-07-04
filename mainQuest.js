@@ -6,6 +6,9 @@ class MainQuestSystem {
         this.storyPageIndex = 0;
         this.typewriterTimer = null;
 
+        // 创建剧情引擎实例
+        this.storyEngine = new StoryEngine(game);
+
         // 任务缓存（运行时，不存储）
         this._questCache = {};
         // ID到名称的映射缓存（持久保存已完成任务的名称）
@@ -275,7 +278,7 @@ class MainQuestSystem {
     checkStageTransitionStory(realmIndex, stageNum, levelInStage) {
         if (levelInStage === 1 && [4, 7, 10].includes(stageNum)) {
             const sceneId = `r${realmIndex}_stage_${stageNum}_start`;
-            const scene = this.game.metadata.storyScenes?.scenes?.[sceneId];
+            const scene = this.storyEngine.getScene(sceneId);
             if (scene) {
                 setTimeout(() => this.triggerStory(sceneId), 500);
             }
@@ -564,6 +567,14 @@ class MainQuestSystem {
         this.game.addBattleLog(`✨ 主线任务【${questDef.name}】已完成！`);
         this.showQuestCompletePopup(questDef);
 
+        // 通知叙事节拍引擎（环境叙事）
+        if (typeof window !== 'undefined' && window.eventManager) {
+            window.eventManager.emit('quest:complete', {
+                questId: questDef.id,
+                questName: questDef.name
+            });
+        }
+
         if (questDef.isMilestone && questDef.storyTrigger) {
             setTimeout(() => {
                 this.triggerStory(questDef.storyTrigger);
@@ -576,7 +587,7 @@ class MainQuestSystem {
         if (questDef.isFinalQuest) {
             const realmFinalSceneId = `r${mq.currentRealm}_realm_final`;
             setTimeout(() => {
-                const scene = this.game.metadata.storyScenes?.scenes?.[realmFinalSceneId];
+                const scene = this.storyEngine.getScene(realmFinalSceneId);
                 if (scene) {
                     this.triggerStory(realmFinalSceneId);
                 }
@@ -723,134 +734,35 @@ class MainQuestSystem {
      * 触发剧情播放
      */
     triggerStory(sceneId) {
-        if (this.game.persistentState.mainStory.currentScene) return;
-
-        const scene = this.game.metadata.storyScenes?.scenes?.[sceneId];
-        if (!scene) return;
-
-        this.game.persistentState.mainStory.currentScene = sceneId;
-        this.storyPageIndex = 0;
-
-        this.showStoryOverlay(scene, 0);
+        this.storyEngine.triggerStory(sceneId);
     }
 
     /**
      * 显示剧情覆盖层
      */
     showStoryOverlay(scene, pageIndex) {
-        const overlay = document.getElementById('story-overlay');
-        const titleEl = document.getElementById('story-chapter-title');
-        const speakerEl = document.getElementById('story-speaker');
-        const textEl = document.getElementById('story-text');
-        const indicatorEl = document.getElementById('story-page-indicator');
-        const speakerImageEl = document.getElementById('story-speaker-image');
-
-        if (!overlay || !scene.pages[pageIndex]) return;
-
-        const page = scene.pages[pageIndex];
-
-        overlay.classList.remove('hidden');
-
-        if (titleEl) {
-            titleEl.textContent = scene.title || '';
-        }
-
-        if (speakerEl) {
-            speakerEl.textContent = page.speaker || '';
-        }
-
-        if (textEl) {
-            this.typewriterEffect(textEl, page.text, 25);
-        }
-
-        if (indicatorEl) {
-            indicatorEl.textContent = `${pageIndex + 1} / ${scene.pages.length}`;
-        }
-
-        // 显示角色立绘
-        if (speakerImageEl) {
-            if (page.speakerImage) {
-                speakerImageEl.src = page.speakerImage;
-                speakerImageEl.style.display = 'block';
-                speakerImageEl.style.animation = 'none';
-                // 触发重新播放动画（缩放淡入）
-                speakerImageEl.offsetHeight; // 触发重排
-                speakerImageEl.style.animation = 'fadeIn 0.5s ease-out';
-            } else {
-                speakerImageEl.style.display = 'none';
-            }
-        }
-
-        this.storyPageIndex = pageIndex;
+        this.storyEngine.showStoryOverlay(scene, pageIndex);
     }
 
     /**
      * 剧情页面切换
      */
     nextStoryPage() {
-        const sceneId = this.game.persistentState.mainStory.currentScene;
-        if (!sceneId) return;
-
-        const scene = this.game.metadata.storyScenes?.scenes?.[sceneId];
-        if (!scene) return;
-
-        const nextIndex = (this.storyPageIndex || 0) + 1;
-
-        if (nextIndex >= scene.pages.length) {
-            this.closeStoryOverlay();
-
-            if (!this.game.persistentState.mainStory.viewedScenes.includes(sceneId)) {
-                this.game.persistentState.mainStory.viewedScenes.push(sceneId);
-            }
-
-            this.game.persistentState.mainStory.currentScene = null;
-            this.game.saveGameState();
-        } else {
-            this.showStoryOverlay(scene, nextIndex);
-        }
+        this.storyEngine.nextStoryPage();
     }
 
     /**
      * 关闭剧情覆盖层
      */
     closeStoryOverlay() {
-        const overlay = document.getElementById('story-overlay');
-        const speakerImageEl = document.getElementById('story-speaker-image');
-
-        if (overlay) {
-            overlay.classList.add('hidden');
-        }
-
-        if (speakerImageEl) {
-            speakerImageEl.style.display = 'none';
-        }
-
-        if (this.typewriterTimer) {
-            clearInterval(this.typewriterTimer);
-            this.typewriterTimer = null;
-        }
+        this.storyEngine.closeStoryOverlay();
     }
 
     /**
      * 打字机效果
      */
     typewriterEffect(element, text, speed = 30) {
-        if (this.typewriterTimer) {
-            clearInterval(this.typewriterTimer);
-        }
-
-        let i = 0;
-        element.textContent = '';
-
-        this.typewriterTimer = setInterval(() => {
-            if (i < text.length) {
-                element.textContent += text[i];
-                i++;
-            } else {
-                clearInterval(this.typewriterTimer);
-                this.typewriterTimer = null;
-            }
-        }, speed);
+        this.storyEngine.typewriterEffect(element, text, speed);
     }
 
     // ========== 剧情回顾 ==========
@@ -866,7 +778,7 @@ class MainQuestSystem {
 
         const chapters = {};
         for (const sceneId of viewedScenes) {
-            const scene = this.game.metadata.storyScenes?.scenes?.[sceneId];
+            const scene = this.storyEngine.getScene(sceneId);
             if (scene) {
                 const chapter = scene.chapter || 0;
                 if (!chapters[chapter]) chapters[chapter] = [];
@@ -907,7 +819,7 @@ class MainQuestSystem {
      * 重播剧情
      */
     replayStory(sceneId) {
-        const scene = this.game.metadata.storyScenes?.scenes?.[sceneId];
+        const scene = this.storyEngine.getScene(sceneId);
         if (!scene) return;
 
         const modal = document.getElementById('main-quest-modal');
@@ -915,8 +827,134 @@ class MainQuestSystem {
 
         setTimeout(() => {
             this.game.persistentState.mainStory.currentScene = sceneId;
-            this.storyPageIndex = 0;
-            this.showStoryOverlay(scene, 0);
+            this.storyEngine.storyPageIndex = 0;
+            this.storyEngine.showStoryOverlay(scene, 0);
+        }, 300);
+    }
+
+    // ========== 外传故事（Phase 5）==========
+
+    /**
+     * 渲染外传故事列表
+     */
+    showSideStories() {
+        const container = document.getElementById('quest-tab-side-content');
+        if (!container) return;
+
+        const sideStories = (typeof window !== 'undefined' && window.StoryData?.sideStories) || [];
+        const affinitySys = this.game.affinitySystem;
+        const realm = this.game.persistentState.player?.realm?.currentRealm || 0;
+        const viewed = this.game.persistentState.mainStory.viewedScenes || [];
+
+        if (sideStories.length === 0) {
+            container.innerHTML = '<div class="text-white/50 text-center py-8">暂无外传故事</div>';
+            return;
+        }
+
+        let html = '<div class="space-y-3">';
+        for (const story of sideStories) {
+            const unlocked = this._isSideStoryUnlocked(story, realm, affinitySys);
+            const storyId = `side_${story.id}`;
+            const isViewed = viewed.includes(storyId) || viewed.includes(story.id);
+
+            if (unlocked) {
+                html += `
+                    <button class="w-full text-left px-4 py-3 bg-white/5 hover:bg-white/10 rounded-lg border border-gold/20 transition-colors" onclick="game.mainQuestSystem.playSideStory('${story.id}')">
+                        <div class="flex items-center justify-between">
+                            <span class="text-gold font-bold text-sm">${story.title}${isViewed ? ' <span class="text-white/30 text-xs">已观看</span>' : ''}</span>
+                            <i class="fa fa-play text-gold/60"></i>
+                        </div>
+                        <div class="text-xs text-white/50 mt-1">${(story.chapters || []).length}章</div>
+                    </button>
+                `;
+            } else {
+                const reqs = this._sideStoryRequirements(story, realm);
+                html += `
+                    <div class="w-full text-left px-4 py-3 bg-white/3 rounded-lg border border-white/10 opacity-60">
+                        <div class="text-white/40 font-bold text-sm">??? <span class="text-white/30">（未解锁）</span></div>
+                        <div class="text-xs text-white/30 mt-1">解锁条件：${reqs.join('，')}</div>
+                    </div>
+                `;
+            }
+        }
+        html += '</div>';
+        html += '<div class="text-white/30 text-xs mt-3 text-center">提升人物好感度与境界可解锁更多外传</div>';
+        container.innerHTML = html;
+    }
+
+    _isSideStoryUnlocked(story, realm, affinitySys) {
+        const unlock = story.unlock || {};
+        if (unlock.realmMin !== undefined && realm < unlock.realmMin) return false;
+        if (unlock.affinity && affinitySys && !affinitySys.meetsAffinity(unlock.affinity)) return false;
+        return true;
+    }
+
+    _sideStoryRequirements(story, realm) {
+        const unlock = story.unlock || {};
+        const reqs = [];
+        if (unlock.realmMin !== undefined && realm < unlock.realmMin) {
+            const names = ['武者', '炼气', '筑基', '金丹', '元婴', '化神'];
+            reqs.push(`达到${names[unlock.realmMin] || unlock.realmMin + 1}境`);
+        }
+        if (unlock.affinity) {
+            for (const [char, val] of Object.entries(unlock.affinity)) {
+                reqs.push(`${char}好感度≥${val}`);
+            }
+        }
+        return reqs.length ? reqs : ['特殊条件'];
+    }
+
+    /**
+     * 播放外传故事（按章节连续播放）
+     */
+    playSideStory(storyId) {
+        const sideStories = (typeof window !== 'undefined' && window.StoryData?.sideStories) || [];
+        const story = sideStories.find(s => s.id === storyId);
+        if (!story) return;
+
+        const realm = this.game.persistentState.player?.realm?.currentRealm || 0;
+        if (!this._isSideStoryUnlocked(story, realm, this.game.affinitySystem)) {
+            console.warn('[外传] 未解锁:', storyId);
+            return;
+        }
+
+        // 将外传所有章节合并为一个连续故事场景
+        const sceneId = `side_${storyId}`;
+        const allPages = [];
+        for (const chapter of (story.chapters || [])) {
+            if (chapter.title) {
+                allPages.push({ text: `【${chapter.title}】`, speaker: '', speakerImage: 'assets/characters/character_01_narrator.jpg', mood: 'chapter' });
+            }
+            for (const p of (chapter.pages || [])) {
+                allPages.push(p);
+            }
+        }
+
+        if (allPages.length === 0) return;
+
+        // 注册为临时场景
+        const scene = { chapter: 5, title: story.title, pages: allPages };
+        if (typeof window !== 'undefined' && window.StoryData?.mainStoryScenes) {
+            window.StoryData.mainStoryScenes[sceneId] = scene;
+        }
+        if (this.game.metadata?.storyScenes?.scenes) {
+            this.game.metadata.storyScenes.scenes[sceneId] = scene;
+        }
+
+        // 发放奖励（图鉴条目）
+        const rewards = story.chapters?.flatMap(c => []) || [];
+        const loreEntry = story.reward?.loreEntry;
+        if (loreEntry && this.game.persistentState.mainStory.loreEntries) {
+            const le = this.game.persistentState.mainStory.loreEntries;
+            if (!le.includes(loreEntry)) le.push(loreEntry);
+        }
+
+        // 关闭任务面板并播放
+        const modal = document.getElementById('main-quest-modal');
+        if (modal) modal.classList.add('hidden');
+
+        setTimeout(() => {
+            this.triggerStory(sceneId);
         }, 300);
     }
 

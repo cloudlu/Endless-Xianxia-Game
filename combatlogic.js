@@ -374,6 +374,7 @@ EndlessCultivationGame.prototype.useSkill = function(skillType = 'attack') {
                 // ✅ 应用能量消耗（使用纯函数式结果）
                 this.persistentState.player.energy = result.updatedPlayer.energy;
                 this.showEnergyChange(this.battle3D.player, -skill.energyCost);
+                this.updateHealthBars();
 
                 if (hit) {
                     // ✅ 创建技能爆发特效（元素爆炸，在敌人躯干位置）
@@ -801,6 +802,8 @@ EndlessCultivationGame.prototype.triggerEnemyCounterattack = function() {
             if (this.transientState.pets && this.transientState.pets.length > 0) {
                 this.executePetAttack();
             }
+            // 更新所有血条/蓝条
+            this.updateHealthBars();
             if (this.persistentState.player.hp <= 0) this.playerDefeated();
             // ✅ UI更新由UIManager通过battle:attack事件自动处理
         }
