@@ -32,6 +32,27 @@ class EndlessCultivationGame {
         tenacity: 0
     };
 
+    // ========== 属性封顶配置（防膨胀）==========
+    // 百分比类属性的上限，避免装备+境界+VIP+buff 叠加突破平衡（如 100%+ 暴击/闪避）。
+    // 调整这些值即可独立调节平衡上限，互不牵连。0/undefined 表示不封顶。
+    static STAT_CAPS = {
+        criticalRate: 0.75,  // 暴击率 ≤ 75%（不保证必暴）
+        dodgeRate: 0.50,     // 闪避率 ≤ 50%（不破坏近战体感）
+        accuracy: 0.95,      // 命中率 ≤ 95%（与 hitChance 上限对齐）
+        tenacity: 0.60       // 暴击减免 ≤ 60%
+    };
+
+    /** 对返回的 stats 对象按 STAT_CAPS 封顶（就地修改并返回） */
+    static applyStatCaps(stats) {
+        if (!stats) return stats;
+        for (const [stat, cap] of Object.entries(EndlessCultivationGame.STAT_CAPS)) {
+            if (cap !== undefined && cap > 0 && typeof stats[stat] === 'number' && stats[stat] > cap) {
+                stats[stat] = cap;
+            }
+        }
+        return stats;
+    }
+
     constructor() {
         // ========== 新架构：数据按生命周期分类 ==========
 
@@ -2495,7 +2516,7 @@ class EndlessCultivationGame {
         if (tempAtk) baseStats.attack = Math.floor(baseStats.attack * (1 + tempAtk));
         if (tempDef) baseStats.defense = Math.floor(baseStats.defense * (1 + tempDef));
 
-        return baseStats;
+        return EndlessCultivationGame.applyStatCaps(baseStats);
     }
 
     /**
@@ -2533,6 +2554,8 @@ class EndlessCultivationGame {
             maxEnergy: e.maxEnergy || 100,
             critDamage: e.critDamage || 0  // 敌人暴击伤害值
         };
+
+        return EndlessCultivationGame.applyStatCaps(enemyStats);
     }
 
     /**
