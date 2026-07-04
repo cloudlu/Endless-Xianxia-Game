@@ -833,7 +833,7 @@ EndlessCultivationGame.prototype.enemyDefeated = function() {
     if (typeof eventManager !== 'undefined' && eventManager) {
         const expMultiplier = this.transientState.enemy.expMultiplier || 1;
         eventManager.emit('battle:victory', {
-            enemy: this.transientState.enemy.name,
+            enemy: this.transientState.enemy,
             isBoss: this.transientState.enemy.isBoss || false,
             isElite: this.transientState.enemy.isElite || false,
             expGained: Math.floor(this.transientState.enemy.level * 20 * expMultiplier),

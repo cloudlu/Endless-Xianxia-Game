@@ -1744,6 +1744,9 @@ class EndlessCultivationGame {
         bindEvent('#collection-equip-tab', 'click', () => {
             this.renderCollection('equipment');
         });
+        bindEvent('#collection-pet-tab', 'click', () => {
+            this.renderCollection('pet');
+        });
 
         // 宠物管理按钮
         bindEvent('#pet-manage-btn', 'click', () => {
@@ -4084,6 +4087,7 @@ class EndlessCultivationGame {
         const subtabsContainer = document.getElementById('collection-subtabs');
         const enemyTabBtn = document.getElementById('collection-enemy-tab');
         const equipTabBtn = document.getElementById('collection-equip-tab');
+        const petTabBtn = document.getElementById('collection-pet-tab');
         const totalEl = document.getElementById('collection-total');
 
         if (!content) return;
@@ -4099,12 +4103,18 @@ class EndlessCultivationGame {
                 ? 'px-4 py-1.5 rounded-lg text-xs font-medium bg-blue-600 text-white'
                 : 'px-4 py-1.5 rounded-lg text-xs font-medium text-gray-400 hover:text-white';
         }
+        if (petTabBtn) {
+            petTabBtn.className = tab === 'pet'
+                ? 'px-4 py-1.5 rounded-lg text-xs font-medium bg-green-600 text-white'
+                : 'px-4 py-1.5 rounded-lg text-xs font-medium text-gray-400 hover:text-white';
+        }
 
         // 总进度
         const enemyProgress = this.collectionSystem.getEnemyProgress();
         const equipProgress = this.collectionSystem.getEquipmentProgress();
-        const totalUnlocked = enemyProgress.unlocked + equipProgress.unlocked;
-        const totalAll = enemyProgress.total + equipProgress.total;
+        const petProgress = this.collectionSystem.getPetProgress();
+        const totalUnlocked = enemyProgress.unlocked + equipProgress.unlocked + petProgress.unlocked;
+        const totalAll = enemyProgress.total + equipProgress.total + petProgress.total;
         if (totalEl) {
             totalEl.textContent = `已解锁 ${totalUnlocked}/${totalAll} (${(totalAll > 0 ? (totalUnlocked / totalAll * 100).toFixed(1) : 0)}%)`;
         }
@@ -4119,7 +4129,8 @@ class EndlessCultivationGame {
                 <ul class="text-xs text-white/50 space-y-0.5 ml-4">
                     <li>• <span class="text-yellow-300">敌人图鉴</span>：收集各地图敌人，全解锁获得经验和资源奖励</li>
                     <li>• <span class="text-purple-300">装备图鉴</span>：收集各境界品质装备，全解锁获得保底装备箱</li>
-                    <li>• 奖励自动发放到背包，请注意查收</li>
+                    <li>• <span class="text-green-300">灵兽图鉴</span>：收集各品质灵兽，全品质收集获得仙玉和突破石</li>
+                    <li>• 奖励自动发放，请注意查收</li>
                 </ul>
             </div>
         `;
@@ -4133,6 +4144,8 @@ class EndlessCultivationGame {
         // Tab内容
         if (tab === 'enemy') {
             this.renderEnemyCollection(content, subtabsContainer, realmIdx);
+        } else if (tab === 'pet') {
+            this.renderPetCollection(content, subtabsContainer);
         } else {
             this.renderEquipmentCollection(content, subtabsContainer, realmIdx, rarityIdx);
         }
@@ -4143,14 +4156,24 @@ class EndlessCultivationGame {
         const collection = this.persistentState.collection;
         const realmConfig = this.metadata.realmConfig || [];
 
-        // 按境界分组
+        // 分离地图敌人和副本敌人
+        const mapCategories = categories.filter(c => c.realm >= 0);
+        const dungeonCategories = categories.filter(c => c.realm < 0);
+
+        // 按境界分组（地图）
         const byRealm = {};
-        for (const cat of categories) {
+        for (const cat of mapCategories) {
             if (!byRealm[cat.realm]) byRealm[cat.realm] = { name: cat.realmName, maps: [] };
             byRealm[cat.realm].maps.push(cat);
         }
 
-        // 境界子Tab - 渲染到单独容器
+        // 副本数据
+        const dungeonUnlocked = dungeonCategories.reduce((sum, cat) =>
+            sum + cat.enemyKeys.filter(k => collection.enemies.includes(k)).length, 0);
+        const dungeonTotal = dungeonCategories.reduce((sum, cat) => sum + cat.enemyKeys.length, 0);
+        const dungeonIdx = realmConfig.length; // 副本tab在最后一个
+
+        // 境界子Tab + 副本Tab
         if (subtabsContainer) {
             let subtabsHtml = '<div class="flex flex-wrap gap-1 px-2">';
             for (let i = 0; i < realmConfig.length; i++) {
@@ -4165,61 +4188,118 @@ class EndlessCultivationGame {
                     ${realm.name}境 (${realmUnlocked}/${realmTotal})
                 </button>`;
             }
+            // 副本Tab
+            const isDungeonActive = selectedRealmIdx === dungeonIdx;
+            subtabsHtml += `<button onclick="game.renderCollection('enemy', ${dungeonIdx})" class="px-3 py-1 rounded text-xs ${isDungeonActive ? 'bg-orange-600 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'}">
+                副本 (${dungeonUnlocked}/${dungeonTotal})
+            </button>`;
             subtabsHtml += '</div>';
             subtabsContainer.innerHTML = subtabsHtml;
         }
 
         // 选中境界的内容
         let html = '';
-        const realmData = byRealm[selectedRealmIdx];
-        if (realmData && realmData.maps.length > 0) {
-            for (const cat of realmData.maps) {
-                const unlocked = cat.enemyKeys.filter(k => collection.enemies.includes(k)).length;
-                const total = cat.enemyKeys.length;
-                const rewardKey = `enemy_${cat.mapId}`;
-                const rewarded = collection.rewardedCategories.includes(rewardKey);
-                const allComplete = unlocked === total;
+        if (selectedRealmIdx === dungeonIdx) {
+            // 副本内容
+            if (dungeonCategories.length > 0) {
+                for (const cat of dungeonCategories) {
+                    const unlocked = cat.enemyKeys.filter(k => collection.enemies.includes(k)).length;
+                    const total = cat.enemyKeys.length;
+                    const rewardKey = `enemy_${cat.mapId}`;
+                    const rewarded = collection.rewardedCategories.includes(rewardKey);
+                    const allComplete = unlocked === total;
 
-                const titleClass = allComplete ? 'text-yellow-400 font-bold' : 'text-blue-300 font-medium';
-                const rewardBadge = rewarded
-                    ? '<span class="text-green-400 text-xs">✅奖励已领</span>'
-                    : allComplete
-                    ? '<span class="text-yellow-300 text-xs cursor-help" title="奖励：经验+2500，灵木+100">🎉可领取</span>'
-                    : '<span class="text-white/30 text-xs" title="全解锁奖励：经验+2500，灵木+100">🎁经验+2500</span>';
+                    const titleClass = allComplete ? 'text-yellow-400 font-bold' : 'text-orange-300 font-medium';
+                    const rewardBadge = rewarded
+                        ? '<span class="text-green-400 text-xs">✅奖励已领</span>'
+                        : allComplete
+                        ? '<span class="text-yellow-300 text-xs cursor-help" title="奖励：经验+2500，灵木+100">🎉可领取</span>'
+                        : '<span class="text-white/30 text-xs" title="全解锁奖励：经验+2500，灵木+100">🎁经验+2500</span>';
 
-                html += `<div class="mb-4">
-                    <div class="flex items-center justify-between mb-2 px-2">
-                        <span class="${titleClass} text-sm">${cat.name} (${unlocked}/${total})</span>
-                        ${rewardBadge}
-                    </div>
-                    <div class="grid grid-cols-3 gap-1.5 px-2">`;
+                    html += `<div class="mb-4">
+                        <div class="flex items-center justify-between mb-2 px-2">
+                            <span class="${titleClass} text-sm">${cat.name} (${unlocked}/${total})</span>
+                            ${rewardBadge}
+                        </div>
+                        <div class="grid grid-cols-3 gap-1.5 px-2">`;
 
-                // 每个敌人显示：图标+名称+类型
-                for (const key of cat.enemyKeys) {
-                    const isUnlocked = collection.enemies.includes(key);
-                    let icon, displayName;
-                    if (key.startsWith('BOSS')) {
-                        icon = '👑';
-                        displayName = key.replace('BOSS', '');
-                    } else if (key.endsWith('_elite')) {
-                        icon = '⭐';
-                        displayName = key.replace('_elite', '');
-                    } else {
-                        icon = '👤';
-                        displayName = key;
+                    for (const key of cat.enemyKeys) {
+                        const isUnlocked = collection.enemies.includes(key);
+                        let icon, displayName;
+                        if (key.startsWith('BOSS')) {
+                            icon = '👑';
+                            displayName = key.replace('BOSS', '');
+                        } else if (key.endsWith('_elite')) {
+                            icon = '⭐';
+                            displayName = key.replace('_elite', '');
+                        } else {
+                            icon = '👤';
+                            displayName = key;
+                        }
+                        const bgClass = isUnlocked ? 'bg-green-900/30 border-green-500/30' : 'bg-gray-800/50 border-gray-700/30';
+                        const textClass = isUnlocked ? 'text-green-400' : 'text-gray-600';
+                        html += `<div class="${bgClass} border rounded p-1.5 text-center">
+                            <div class="text-sm">${icon}</div>
+                            <div class="${textClass} text-xs truncate">${displayName}</div>
+                        </div>`;
                     }
-                    const bgClass = isUnlocked ? 'bg-green-900/30 border-green-500/30' : 'bg-gray-800/50 border-gray-700/30';
-                    const textClass = isUnlocked ? 'text-green-400' : 'text-gray-600';
-                    html += `<div class="${bgClass} border rounded p-1.5 text-center">
-                        <div class="text-sm">${icon}</div>
-                        <div class="${textClass} text-xs truncate">${displayName}</div>
-                    </div>`;
-                }
 
-                html += '</div></div>';
+                    html += '</div></div>';
+                }
+            } else {
+                html += '<div class="text-center text-gray-500 py-8">暂无副本数据</div>';
             }
         } else {
-            html += '<div class="text-center text-gray-500 py-8">该境界暂无地图</div>';
+            // 地图境界内容
+            const realmData = byRealm[selectedRealmIdx];
+            if (realmData && realmData.maps.length > 0) {
+                for (const cat of realmData.maps) {
+                    const unlocked = cat.enemyKeys.filter(k => collection.enemies.includes(k)).length;
+                    const total = cat.enemyKeys.length;
+                    const rewardKey = `enemy_${cat.mapId}`;
+                    const rewarded = collection.rewardedCategories.includes(rewardKey);
+                    const allComplete = unlocked === total;
+
+                    const titleClass = allComplete ? 'text-yellow-400 font-bold' : 'text-blue-300 font-medium';
+                    const rewardBadge = rewarded
+                        ? '<span class="text-green-400 text-xs">✅奖励已领</span>'
+                        : allComplete
+                        ? '<span class="text-yellow-300 text-xs cursor-help" title="奖励：经验+2500，灵木+100">🎉可领取</span>'
+                        : '<span class="text-white/30 text-xs" title="全解锁奖励：经验+2500，灵木+100">🎁经验+2500</span>';
+
+                    html += `<div class="mb-4">
+                        <div class="flex items-center justify-between mb-2 px-2">
+                            <span class="${titleClass} text-sm">${cat.name} (${unlocked}/${total})</span>
+                            ${rewardBadge}
+                        </div>
+                        <div class="grid grid-cols-3 gap-1.5 px-2">`;
+
+                    for (const key of cat.enemyKeys) {
+                        const isUnlocked = collection.enemies.includes(key);
+                        let icon, displayName;
+                        if (key.startsWith('BOSS')) {
+                            icon = '👑';
+                            displayName = key.replace('BOSS', '');
+                        } else if (key.endsWith('_elite')) {
+                            icon = '⭐';
+                            displayName = key.replace('_elite', '');
+                        } else {
+                            icon = '👤';
+                            displayName = key;
+                        }
+                        const bgClass = isUnlocked ? 'bg-green-900/30 border-green-500/30' : 'bg-gray-800/50 border-gray-700/30';
+                        const textClass = isUnlocked ? 'text-green-400' : 'text-gray-600';
+                        html += `<div class="${bgClass} border rounded p-1.5 text-center">
+                            <div class="text-sm">${icon}</div>
+                            <div class="${textClass} text-xs truncate">${displayName}</div>
+                        </div>`;
+                    }
+
+                    html += '</div></div>';
+                }
+            } else {
+                html += '<div class="text-center text-gray-500 py-8">该境界暂无地图</div>';
+            }
         }
 
         container.innerHTML = html;
@@ -4337,6 +4417,66 @@ class EndlessCultivationGame {
         }
         html += '</div>';
 
+        container.innerHTML = html;
+    }
+
+    renderPetCollection(container, subtabsContainer) {
+        const collection = this.persistentState.collection;
+        const petTypes = this.metadata.petTypes || [];
+        const qualities = PetSystem.QUALITIES;
+
+        if (subtabsContainer) subtabsContainer.innerHTML = '';
+
+        const petProgress = this.collectionSystem.getPetProgress();
+
+        let html = '';
+
+        // 进度条
+        const progressPercent = petProgress.total > 0 ? (petProgress.unlocked / petProgress.total * 100) : 0;
+        html += `<div class="px-2 mb-4">
+            <div class="flex items-center justify-between mb-1">
+                <span class="text-green-300 text-sm font-medium">灵兽图鉴 (${petProgress.unlocked}/${petProgress.total})</span>
+            </div>
+            <div class="w-full h-2 bg-gray-700 rounded-full overflow-hidden">
+                <div class="h-full bg-green-500" style="width: ${progressPercent}%"></div>
+            </div>
+            <div class="text-xs text-gray-500 mt-1">收集同一灵兽的全部品质可获得仙玉+200、突破石+10</div>
+        </div>`;
+
+        html += '<div class="space-y-3 px-2">';
+
+        for (const petType of petTypes) {
+            // 检查该种类是否全品质收集
+            const allCollected = [0, 1, 2, 3].every(q => collection.pets.includes(`${petType.id}_${q}`));
+            const rewardKey = `pet_all_${petType.id}`;
+            const rewarded = collection.rewardedCategories.includes(rewardKey);
+
+            html += `<div class="bg-black/20 rounded-lg p-3 border ${allCollected ? 'border-green-500/30' : 'border-gray-700/20'}">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="font-medium ${allCollected ? 'text-green-400' : 'text-gray-200'} text-sm">${petType.name}</span>
+                    ${allCollected ? (rewarded ? '<span class="text-green-400 text-xs">✅奖励已领</span>' : '<span class="text-yellow-300 text-xs">🎉可领取</span>') : ''}
+                </div>
+                <div class="grid grid-cols-4 gap-2">`;
+
+            for (let q = 0; q < 4; q++) {
+                const qi = qualities[q];
+                const key = `${petType.id}_${q}`;
+                const unlocked = collection.pets.includes(key);
+
+                html += `<div class="rounded-lg p-2 text-center border ${unlocked ? 'border-green-500/30 bg-green-900/20' : 'border-gray-700/20 bg-gray-800/20'}">
+                    <div class="text-xs font-medium" style="color: ${unlocked ? qi.color : '#4b5563'}">${qi.name}</div>
+                    <div class="text-xs text-gray-600 mt-0.5">${qi.multiplier}x</div>
+                    ${unlocked
+                        ? `<div class="text-xs text-green-500 mt-0.5">已获得</div>`
+                        : `<div class="text-xs text-gray-600 mt-0.5">???</div>`
+                    }
+                </div>`;
+            }
+
+            html += '</div></div>';
+        }
+
+        html += '</div>';
         container.innerHTML = html;
     }
 

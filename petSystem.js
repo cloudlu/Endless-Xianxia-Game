@@ -151,11 +151,15 @@ class PetSystem {
     addPet(petInstance) {
         if (!petInstance) return;
         this.game.persistentState.player.pets.owned.push(petInstance);
+        // 记录到图鉴
+        if (this.game.collectionSystem) {
+            this.game.collectionSystem.recordPet(petInstance);
+        }
         this.game.saveGameState();
     }
 
     /**
-     * 放生宠物 — 回收灵石（品质×等级×5）+ 突破石（品质×2）
+     * 放生宠物 — 回收灵石（品质×等级×10）+ 突破石（品质×2）
      */
     releasePet(instanceId) {
         const pets = this.game.persistentState.player.pets;
@@ -167,16 +171,15 @@ class PetSystem {
             return { success: false, message: '出战宠物不能放生，请先休息！' };
         }
 
-        // 计算回收资源（上限为购买价的40%，防止套利）
+        // 计算回收资源
         const qualityMultiplier = PetSystem.QUALITIES[pet.quality || 0]?.multiplier || 1.0;
-        const jadeReturnRaw = Math.floor(qualityMultiplier * pet.level * 5);
-        const purchasePrice = this._getPetPurchasePrice(pet.typeId);
-        const jadeReturn = Math.min(jadeReturnRaw, Math.floor(purchasePrice * 0.4));
+        const spiritStonesReturn = Math.floor(qualityMultiplier * pet.level * 10);
         const stoneReturn = Math.floor(qualityMultiplier * 2);
 
         // 发放资源
-        if (jadeReturn > 0) {
-            this.game.persistentState.resources.jade = (this.game.persistentState.resources.jade || 0) + jadeReturn;
+        if (spiritStonesReturn > 0) {
+            this.game.persistentState.resources.spiritStones =
+                (this.game.persistentState.resources.spiritStones || 0) + spiritStonesReturn;
         }
         if (stoneReturn > 0) {
             this.game.persistentState.resources.breakthroughStones =
@@ -189,8 +192,8 @@ class PetSystem {
 
         return {
             success: true,
-            message: `放生【${pet.name}】，获得仙玉+${jadeReturn}，突破石+${stoneReturn}`,
-            jade: jadeReturn,
+            message: `放生【${pet.name}】，获得灵石+${spiritStonesReturn}，突破石+${stoneReturn}`,
+            spiritStones: spiritStonesReturn,
             stones: stoneReturn
         };
     }
@@ -453,11 +456,11 @@ class PetSystem {
         if (!pet) return;
 
         const qualityMultiplier = PetSystem.QUALITIES[pet.quality || 0]?.multiplier || 1.0;
-        const jadeReturn = Math.floor(qualityMultiplier * pet.level * 5);
+        const spiritStonesReturn = Math.floor(qualityMultiplier * pet.level * 10);
         const stoneReturn = Math.floor(qualityMultiplier * 2);
         const qualityName = PetSystem.QUALITIES[pet.quality || 0]?.name || '凡品';
 
-        const confirmed = confirm(`确认放生【${qualityName} ${pet.name}】Lv.${pet.level}？\n回收：仙玉+${jadeReturn}，突破石+${stoneReturn}`);
+        const confirmed = confirm(`确认放生【${qualityName} ${pet.name}】Lv.${pet.level}？\n回收：灵石+${spiritStonesReturn}，突破石+${stoneReturn}`);
         if (!confirmed) return;
 
         const result = this.releasePet(instanceId);

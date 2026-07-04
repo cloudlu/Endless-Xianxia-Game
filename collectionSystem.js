@@ -12,9 +12,18 @@ class CollectionSystem {
             this.game.persistentState.collection = {
                 enemies: [],
                 equipmentTypes: [],
+                pets: [],
                 rewardedCategories: []
             };
         }
+
+        // 旧存档兼容：补pets字段
+        if (!this.game.persistentState.collection.pets) {
+            this.game.persistentState.collection.pets = [];
+        }
+
+        // 已拥有的宠物自动记录到图鉴
+        this._syncPetCollection();
 
         // ✅ 监听事件，自动记录图鉴
         if (typeof window !== 'undefined' && window.eventManager) {
@@ -53,6 +62,27 @@ class CollectionSystem {
                 enemyKeys: allKeys
             });
         }
+
+        // 副本敌人分类
+        const resourceDungeons = this.game.metadata.resourceDungeons || {};
+        for (const [dungeonId, dungeon] of Object.entries(resourceDungeons)) {
+            const allKeys = [];
+            for (const enemyName of (dungeon.enemy_types || [])) {
+                allKeys.push(enemyName);            // 普通
+                allKeys.push(enemyName + '_elite'); // 精英
+            }
+            if (dungeon.boss_type) {
+                allKeys.push('BOSS' + dungeon.boss_type); // Boss
+            }
+            categories.push({
+                mapId: dungeonId,
+                name: dungeon.name || dungeonId,
+                realm: -1,
+                realmName: '副本',
+                enemyKeys: allKeys
+            });
+        }
+
         return categories;
     }
 
@@ -257,6 +287,81 @@ class CollectionSystem {
     // 查询分类是否已领奖
     isCategoryRewarded(categoryKey) {
         return this.game.persistentState.collection?.rewardedCategories?.includes(categoryKey) || false;
+    }
+
+    // ==================== 宠物图鉴 ====================
+
+    /**
+     * 同步已有宠物到图鉴（启动时调用）
+     */
+    _syncPetCollection() {
+        const pets = this.game.persistentState?.player?.pets?.owned || [];
+        for (const pet of pets) {
+            this.recordPet(pet);
+        }
+    }
+
+    /**
+     * 记录宠物到图鉴（按 typeId 记录）
+     */
+    recordPet(petInstance) {
+        const collection = this.game.persistentState.collection;
+        if (!collection || !petInstance?.typeId) return;
+
+        // key格式：petTypeId_quality，如 spirit_fox_2
+        const key = `${petInstance.typeId}_${petInstance.quality || 0}`;
+        if (!collection.pets.includes(key)) {
+            collection.pets.push(key);
+            this.checkAndGrantPetRewards();
+        }
+    }
+
+    /**
+     * 查询宠物是否已解锁
+     */
+    isPetUnlocked(typeId, quality) {
+        const key = `${typeId}_${quality || 0}`;
+        return this.game.persistentState.collection?.pets?.includes(key) || false;
+    }
+
+    /**
+     * 获取宠物图鉴进度
+     */
+    getPetProgress() {
+        const petTypes = this.game.metadata.petTypes || [];
+        const qualities = 4; // 凡/灵/仙/神
+        const total = petTypes.length * qualities;
+        const unlocked = this.game.persistentState.collection?.pets?.length || 0;
+        return { unlocked, total };
+    }
+
+    /**
+     * 检查并发放宠物图鉴奖励
+     */
+    checkAndGrantPetRewards() {
+        const collection = this.game.persistentState.collection;
+        if (!collection) return;
+
+        const petTypes = this.game.metadata.petTypes || [];
+
+        // 收集全部种类奖励
+        for (const petType of petTypes) {
+            const rewardKey = `pet_all_${petType.id}`;
+            if (collection.rewardedCategories.includes(rewardKey)) continue;
+
+            // 检查该种类是否4个品质都收集齐
+            const allCollected = [0, 1, 2, 3].every(q => collection.pets.includes(`${petType.id}_${q}`));
+            if (!allCollected) continue;
+
+            collection.rewardedCategories.push(rewardKey);
+            this.game.addBattleLog(`[图鉴] ${petType.name}全品质收集完成！奖励：仙玉+200，突破石+10`);
+
+            if (this.game.persistentState.resources) {
+                this.game.persistentState.resources.jade = (this.game.persistentState.resources.jade || 0) + 200;
+                this.game.persistentState.resources.breakthroughStones =
+                    (this.game.persistentState.resources.breakthroughStones || 0) + 10;
+            }
+        }
     }
 }
 

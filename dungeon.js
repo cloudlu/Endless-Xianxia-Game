@@ -398,7 +398,11 @@ class DungeonSystem {
             resourceMultiplier: (selectedEnemyType?.resourceMultiplier || 1) * (enemyType.type === 'boss' ? 2.0 : (enemyType.type === 'elite' ? 1.5 : 1)),
             position: { x: 0, z: 0, y: 0 },
             isFlying: false,
-            baseName: enemyType.name
+            baseName: enemyType.type === 'elite'
+                ? enemyType.name.replace(/^精英/, '')
+                : enemyType.type === 'boss'
+                    ? enemyType.name.replace(/^BOSS/, '')
+                    : enemyType.name
         };
 
         return enemyData;
@@ -1005,6 +1009,21 @@ class DungeonSystem {
      * 波次战斗胜利处理
      */
     onWaveBattleVictory() {
+        // 图鉴记录本波所有击败的敌人
+        if (typeof eventManager !== 'undefined' && eventManager) {
+            for (const enemy of this.game.transientState.enemies) {
+                if (enemy.hp <= 0) {
+                    eventManager.emit('battle:victory', {
+                        enemy: enemy,
+                        isBoss: enemy.isBoss || false,
+                        isElite: enemy.isElite || false,
+                        dungeonId: this.currentDungeon,
+                        timestamp: Date.now()
+                    });
+                }
+            }
+        }
+
         // 收集本波奖励
         const waveRewards = { exp: 0, spiritStones: 0, iron: 0, herbs: 0 };
         for (let i = 0; i < this.game.transientState.enemies.length; i++) {
