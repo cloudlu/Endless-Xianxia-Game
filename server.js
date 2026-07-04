@@ -319,7 +319,7 @@ function sanitizeAndMergeSave(clientState, saveFilePath) {
     }
 
     if (prev && prev.vip) {
-        // vip 全量以服务端为准
+        // 老玩家：vip 全量以服务端为准
         result.vip = prev.vip;
 
         // jade 天花板 = 历史充值总额（jade 只能由充值产出，花销只能减少）
@@ -334,8 +334,13 @@ function sanitizeAndMergeSave(clientState, saveFilePath) {
         } else if (clientJade < 0) {
             result.resources.jade = 0;
         }
-    } else if (!result.vip) {
+    } else {
+        // 全新玩家：丢弃客户端 vip（防止首次存档注入 totalRecharged 抬高天花板）。
+        // 只有 /api/recharge 可以产生 jade 与提升 totalRecharged。
         result.vip = { level: 0, totalRecharged: 0, redeemedCodes: [] };
+        if (!result.resources) result.resources = {};
+        const clientJade = Number(result.resources.jade);
+        result.resources.jade = Number.isFinite(clientJade) && clientJade < 0 ? 0 : 0;
     }
 
     return result;
