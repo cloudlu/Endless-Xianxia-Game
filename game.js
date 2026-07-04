@@ -2471,6 +2471,15 @@ class EndlessCultivationGame {
 
         // 注意：VIP加成已在 equipmentSystem.calculateEquipmentEffects() 中
         // 叠加到 equipmentEffects 上，因此这里不需要再单独计算
+
+        // 战斗中临时百分比加成（allStatsBonus buff）—— mul_pct 加法叠加
+        // tempAttackBonus/tempDefenseBonus 在回合开始由 processBuffsAtTurnStart 计算、
+        // 战斗结束由 clearBattleStates 清零；非战斗时为 0，不影响日常属性。
+        const tempAtk = Number(p.tempAttackBonus) || 0;
+        const tempDef = Number(p.tempDefenseBonus) || 0;
+        if (tempAtk) baseStats.attack = Math.floor(baseStats.attack * (1 + tempAtk));
+        if (tempDef) baseStats.defense = Math.floor(baseStats.defense * (1 + tempDef));
+
         return baseStats;
     }
 
