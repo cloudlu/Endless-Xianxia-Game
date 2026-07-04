@@ -409,6 +409,13 @@ class EndlessCultivationGame {
                 this.metadata.storyScenes.scenes = window.StoryData.mainStoryScenes;
             }
 
+            // 启动配置自检：把配置错误前移到启动期可见（report-only，不阻断）
+            if (typeof window !== 'undefined' && window.ConfigValidator) {
+                try {
+                    window.ConfigValidator.validate(this.metadata, window.StoryData);
+                } catch (e) { console.error('[ConfigValidator] 自检异常:', e); }
+            }
+
             // 添加辅助方法
             this.metadata.getSkillById = function(skillId) {
                 // 从技能树系统中查找技能
