@@ -275,9 +275,9 @@ app.post('/api/save', verifyToken, (req, res) => {
             return res.status(400).json({ error: 'Missing player data' });
         }
 
-        // 直接保存，客户端已过滤临时数据
         const saveFilePath = path.join(SAVE_DIR, `${userId}.json`);
-        fs.writeFileSync(saveFilePath, JSON.stringify(gameState, null, 2));
+        const merged = sanitizeAndMergeSave(gameState, saveFilePath);
+        fs.writeFileSync(saveFilePath, JSON.stringify(merged, null, 2));
 
         res.json({ success: true, message: 'Game state saved successfully' });
     } catch (error) {
@@ -285,6 +285,61 @@ app.post('/api/save', verifyToken, (req, res) => {
         res.status(500).json({ error: 'Failed to save game state' });
     }
 });
+
+/**
+ * 安全校验与权威字段合并：
+ *  - vip 对象（含 totalRecharged / level / redeemedCodes）完全以服务端存档为准，
+ *    客户端不可伪造（仅 /api/recharge 可变更）。
+ *  - resources.jade 以服务端记录的 totalRecharged 为天花板（花销只能减少，不能凭空增加）。
+ *  - 数值字段过滤 NaN / Infinity；资源类禁止负数。
+ * 非经济字段（等级/经验/装备等）仍接受客户端值——完整服务端权威需更大重构，不在本次范围。
+ */
+function sanitizeAndMergeSave(clientState, saveFilePath) {
+    const result = structuredClone(clientState);
+
+    // 数值卫生：递归清理资源对象的 NaN/Infinity/负数
+    const sanitizeNumberMap = (obj) => {
+        if (!obj || typeof obj !== 'object') return;
+        for (const k of Object.keys(obj)) {
+            const v = obj[k];
+            if (typeof v === 'number' && !Number.isFinite(v)) {
+                obj[k] = 0;
+            } else if (typeof v === 'number' && v < 0 && /jade|spiritStones|herbs|iron|breakthroughStones|exp|energy|hp/i.test(k)) {
+                obj[k] = 0;
+            }
+        }
+    };
+    if (result.resources) sanitizeNumberMap(result.resources);
+    if (result.player) sanitizeNumberMap(result.player);
+
+    // 合并服务端权威字段
+    let prev = null;
+    if (fs.existsSync(saveFilePath)) {
+        try { prev = JSON.parse(fs.readFileSync(saveFilePath, 'utf8')); } catch (_) { prev = null; }
+    }
+
+    if (prev && prev.vip) {
+        // vip 全量以服务端为准
+        result.vip = prev.vip;
+
+        // jade 天花板 = 历史充值总额（jade 只能由充值产出，花销只能减少）
+        const ceiling = Number(prev.vip.totalRecharged) || 0;
+        if (!result.resources) result.resources = {};
+        const clientJade = Number(result.resources.jade);
+        if (!Number.isFinite(clientJade)) {
+            result.resources.jade = ceiling;
+        } else if (clientJade > ceiling) {
+            console.warn(`[save] 用户 ${prev.user?.userId} jade 超出天花板: ${clientJade} > ${ceiling}，已截断`);
+            result.resources.jade = ceiling;
+        } else if (clientJade < 0) {
+            result.resources.jade = 0;
+        }
+    } else if (!result.vip) {
+        result.vip = { level: 0, totalRecharged: 0, redeemedCodes: [] };
+    }
+
+    return result;
+}
 
 // 加载游戏状态
 app.get('/api/load', verifyToken, (req, res) => {
@@ -448,10 +503,16 @@ app.post('/api/recharge', verifyToken, (req, res) => {
         if (!gameState.resources) gameState.resources = {};
         if (gameState.resources.jade === undefined) gameState.resources.jade = 0;
         if (!gameState.vip) gameState.vip = { level: 0, totalRecharged: 0 };
+        // 防重复兑换：记录该用户已使用的充值码（每用户每档位仅可使用一次）
+        if (!Array.isArray(gameState.vip.redeemedCodes)) gameState.vip.redeemedCodes = [];
+        if (gameState.vip.redeemedCodes.includes(upperCode)) {
+            return res.json({ success: false, message: '该档位充值码已使用，无法重复兑换' });
+        }
 
         // 增加仙玉
         gameState.resources.jade += found.jade;
         gameState.vip.totalRecharged += found.jade;
+        gameState.vip.redeemedCodes.push(upperCode);
 
         // 重新计算VIP等级
         let newLevel = 0;
