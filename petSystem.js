@@ -285,9 +285,11 @@ class PetSystem {
 
         return {
             id: petInstance.instanceId,
+            typeId: petInstance.typeId,
             name: petInstance.name,
             qualityName: qualityInfo?.name || '凡品',
             qualityColor: qualityInfo?.color || '#9ca3af',
+            quality: petInstance.quality || 0,
             type: petType?.type || '兽',
             hp: stats.hp,
             maxHp: stats.hp,
@@ -338,6 +340,8 @@ class PetSystem {
         const nameEl = document.getElementById('pet-name');
         const barEl = document.getElementById('pet-hp-bar');
         const textEl = document.getElementById('pet-hp-text');
+        const energyBarEl = document.getElementById('pet-energy-bar');
+        const energyTextEl = document.getElementById('pet-energy-text');
 
         if (nameEl) {
             const qualityBadge = `<span style="color:${pet.qualityColor}">${pet.qualityName || '凡品'}</span>`;
@@ -353,7 +357,14 @@ class PetSystem {
         }
         if (textEl) textEl.textContent = `${Math.max(0, Math.floor(pet.hp))}/${pet.maxHp}`;
 
-        // 宠物死亡时隐藏
+        // 能量条
+        if (energyBarEl && pet.maxEnergy > 0) {
+            const ep = Math.max(0, (pet.energy / pet.maxEnergy) * 100);
+            energyBarEl.style.width = ep + '%';
+        }
+        if (energyTextEl) energyTextEl.textContent = `${Math.floor(pet.energy || 0)}/${pet.maxEnergy || 100}`;
+
+        // 宠物死亡时
         const petPanel = document.getElementById('pet-health-panel');
         if (petPanel && pet.hp <= 0) {
             nameEl.textContent = `${pet.name} (已倒下)`;
@@ -365,8 +376,83 @@ class PetSystem {
      */
     deactivatePet() {
         this.game.transientState.pets = [];
+        // Stop bone animations
+        if (this.game.battle3D?.petAnimationGroups) {
+            this.game.battle3D.petAnimationGroups.forEach(ag => ag.stop());
+            this.game.battle3D.petAnimationGroups = null;
+        }
+        if (this.game.battle3D) {
+            this.game.battle3D.petSkeleton = null;
+        }
         const petPanel = document.getElementById('pet-health-panel');
         if (petPanel) petPanel.classList.add('hidden');
+    }
+
+    // ========== 3D预览 ==========
+
+    _ensurePreview() {
+        if (!this._preview) {
+            this._preview = new ModelPreview();
+            this._preview.init('pet-preview-canvas');
+        }
+    }
+
+    showPetPreview(petInstance) {
+        if (!petInstance) return;
+        this._ensurePreview();
+
+        const petType = this.game.metadata.petTypes?.find(t => t.id === petInstance.typeId);
+        const quality = petInstance.quality || 0;
+        const color = petType?.color || { r: 0.3, g: 0.7, b: 0.4 };
+        const glbPath = petType?.glbPath;
+
+        // 记录当前选中的灵兽
+        this._previewPetId = petInstance.instanceId;
+
+        console.log('showPetPreview: typeId=' + petInstance.typeId + ', glbPath=' + glbPath);
+
+        if (glbPath) {
+            this._preview.show({
+                glbPath: glbPath,
+                quality: quality,
+                color: color,
+                scale: 1.0,
+                autoRotate: true
+            });
+        } else {
+            // 无GLB则显示简化几何体
+            console.log('showPetPreview: no GLB, using geometry fallback');
+            this._preview.showGeometry({ color: color, scale: 1.0 });
+        }
+
+        // 更新标签
+        const label = document.getElementById('pet-preview-label');
+        const qualityInfo = PetSystem.QUALITIES[quality];
+        if (label) {
+            label.innerHTML = `<span style="color:${qualityInfo.color}">${qualityInfo.name}</span> ${petInstance.name} Lv.${petInstance.level}`;
+        }
+
+        // 刷新面板高亮
+        this._updateCardHighlight();
+    }
+
+    _updateCardHighlight() {
+        const cards = document.querySelectorAll('.pet-card');
+        cards.forEach(card => {
+            if (card.dataset.petId === this._previewPetId) {
+                card.classList.add('ring-2', 'ring-green-400/60');
+            } else {
+                card.classList.remove('ring-2', 'ring-green-400/60');
+            }
+        });
+    }
+
+    disposePetPreview() {
+        if (this._preview) {
+            this._preview.dispose();
+            this._preview = null;
+        }
+        this._previewPetId = null;
     }
 
     // ========== 宠物管理UI ==========
@@ -384,7 +470,13 @@ class PetSystem {
             return;
         }
 
-        let html = '<div class="space-y-2">';
+        // 3D 预览区域
+        let html = `<div id="pet-preview-container" class="w-full h-48 bg-black/30 rounded-lg mb-3 overflow-hidden relative">
+            <canvas id="pet-preview-canvas" class="w-full h-full"></canvas>
+            <div id="pet-preview-label" class="absolute bottom-1 left-2 text-xs text-gray-500">点击灵兽卡片预览</div>
+        </div>`;
+
+        html += '<div class="space-y-2">';
         pets.owned.forEach(pet => {
             const stats = this.getPetStats(pet);
             const isActive = pet.instanceId === pets.activePetId;
@@ -392,7 +484,9 @@ class PetSystem {
             const qualityInfo = PetSystem.QUALITIES[pet.quality || 0];
 
             html += `
-            <div class="flex items-center justify-between p-2 rounded ${isActive ? 'bg-green-900/40 border border-green-500/50' : 'bg-gray-800/50 border border-gray-700/50'}">
+            <div class="pet-card flex items-center justify-between p-2 rounded cursor-pointer hover:bg-gray-700/50 transition-colors ${isActive ? 'bg-green-900/40 border border-green-500/50' : 'bg-gray-800/50 border border-gray-700/50'}"
+                 data-pet-id="${pet.instanceId}"
+                 onclick="game.petSystem.showPetPreview(game.persistentState.player.pets.owned.find(p=>p.instanceId==='${pet.instanceId}'))">
                 <div class="flex-1">
                     <div class="flex items-center gap-2">
                         <span class="font-bold ${isActive ? 'text-green-400' : 'text-gray-200'} text-sm">${pet.name}</span>
@@ -420,6 +514,17 @@ class PetSystem {
         });
         html += '</div>';
         container.innerHTML = html;
+
+        // 初始化3D预览并自动展示出战灵兽
+        const activePet = pets.owned.find(p => p.instanceId === pets.activePetId);
+        if (activePet) {
+            // 使用 rAF 确保canvas已完成布局
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    this.showPetPreview(activePet);
+                });
+            });
+        }
     }
 
     /**

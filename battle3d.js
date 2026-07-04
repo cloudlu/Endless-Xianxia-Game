@@ -3307,6 +3307,22 @@ EndlessCultivationGame.prototype.showBattleTooltip = function(type) {
         name = this._user?.username || '玩家';  // ✅ 使用实际的游戏名称
         currentHp = this.persistentState.player.hp;
         maxHp = stats.maxHp;
+    } else if (type === 'pet') {
+        const pet = this.transientState.pets?.[0];
+        stats = pet ? {
+            attack: pet.attack,
+            defense: pet.defense,
+            speed: pet.speed,
+            luck: 0,
+            accuracy: 1,
+            dodgeRate: 0,
+            criticalRate: (pet.criticalRate || 0) / 100,
+            critDamage: ((pet.critDamage || 1.5) - 1) * 100,
+            tenacity: 0
+        } : { attack: 0, defense: 0, speed: 0, luck: 0, accuracy: 1, dodgeRate: 0, criticalRate: 0, critDamage: 0, tenacity: 0 };
+        name = pet ? `${pet.name} (${pet.qualityName || '凡品'})` : '宠物';
+        currentHp = pet?.hp || 0;
+        maxHp = pet?.maxHp || 0;
     } else {
         stats = this.getEnemyActualStats();
         const enemy = this.transientState.enemy;
@@ -3351,6 +3367,18 @@ EndlessCultivationGame.prototype.showBattleTooltip = function(type) {
                 <div class="text-blue-300 font-semibold">🔮 灵力: ${Math.floor(energy)} / ${Math.floor(maxEnergy)}</div>
             </div>
         `;
+    }
+
+    // 如果是宠物，显示完整属性
+    if (type === 'pet') {
+        const pet = this.transientState.pets?.[0];
+        if (pet) {
+            info += `
+                <div class="border-t border-white/30 pt-2 mt-2">
+                    <div class="text-blue-300">⚡ 能量: ${Math.floor(pet.energy || 0)} / ${pet.maxEnergy || 100}</div>
+                </div>
+            `;
+        }
     }
 
     info += '</div>';
@@ -3684,13 +3712,301 @@ EndlessCultivationGame.prototype.createPetModel = function(petInfo) {
         return;
     }
 
-    const scene = this.battle3D.scene;
+    // 从 metadata 获取 GLB 路径
+    var petType = this.metadata.petTypes?.find(t => t.id === petInfo.typeId);
+    var glbPath = petType?.glbPath;
 
-    // 宠物使用缩小版敌人模型
-    const category = this.getEnemyCategory ? this.getEnemyCategory(petInfo.type || '兽') : 'QUAD';
+    if (glbPath) {
+        this._createPetFromGLB(petInfo, glbPath);
+    } else {
+        this._createPetFromGeometry(petInfo);
+    }
+};
+
+// 从GLB文件创建宠物模型
+// 新的宠物创建函数
+EndlessCultivationGame.prototype._createPetFromGLB = function(petInfo, glbPath) {
+    var scene = this.battle3D.scene;
+    var self = this;
+
+    // 品质等级
+    var quality = petInfo.quality || 0;
+
+    var baseColor = petInfo.color ?
+        new BABYLON.Color3(petInfo.color.r, petInfo.color.g, petInfo.color.b) :
+        new BABYLON.Color3(0.3, 0.7, 0.4);
+
+    var petGroup = new BABYLON.TransformNode("petGroup", scene);
+    petGroup.position.x = -1.5;
+    petGroup.position.y = 0;
+    petGroup.position.z = 0.5;
+    petGroup.rotation.y = Math.PI / 2;
+    this.battle3D.pet = petGroup;
+
+    self._setupPetHealthBars(petGroup, 1.0);
+    console.log('📦 加载宠物GLB:', glbPath, '品质:', quality);
+
+    // 配置 Draco 解码器路径
+    if (BABYLON.DracoCompression) {
+        BABYLON.DracoCompression.Configuration = {
+            decoder: {
+                wasmUrl: 'lib/draco_wasm_wrapper_gltf.js',
+                wasmBinaryUrl: 'lib/draco_decoder_gltf.wasm',
+                fallbackUrl: 'lib/draco_wasm_wrapper_gltf.js'
+            }
+        };
+    }
+
+    BABYLON.SceneLoader.ImportMesh("", "", glbPath, scene, function(meshes, ps, skeletons, animationGroups) {
+        if (!meshes || meshes.length === 0) {
+            petGroup.dispose();
+            self._createPetFromGeometry(petInfo);
+            return;
+        }
+
+        // Store skeleton reference for bone animations
+        if (skeletons && skeletons.length > 0) {
+            self.battle3D.petSkeleton = skeletons[0];
+            console.log('🦴 宠物骨骼加载:', skeletons[0].name, '骨骼数:', skeletons[0].bones.length);
+        }
+
+        // Start GLB bone animation (idle)
+        if (animationGroups && animationGroups.length > 0) {
+            self.battle3D.petAnimationGroups = animationGroups;
+            animationGroups[0].start(true); // loop
+            console.log('🎬 宠物骨骼动画启动:', animationGroups[0].name);
+        }
+
+        // === 品质着色（保留原始纹理，添加品质光晕）===
+        var originalColors = [];
+        var QUALITY_GLOW = [
+            new BABYLON.Color3(0.05, 0.08, 0.05), // 凡品
+            new BABYLON.Color3(0.25, 0.1, 0.5),  // 灵品紫光
+            new BABYLON.Color3(0.5, 0.4, 0.05),  // 仙品金光
+            new BABYLON.Color3(0.5, 0.1, 0.2),   // 神品红光
+        ];
+        var qualityGlow = QUALITY_GLOW[quality] || QUALITY_GLOW[0];
+        for (var i = 0; i < meshes.length; i++) {
+            var mesh = meshes[i];
+            mesh.parent = petGroup;
+
+            if (mesh.material) {
+                // 保留原始材质（StandardMaterial 或 PBRMaterial），仅加光晕
+                var mat = mesh.material;
+                mat.backFaceCulling = false;
+                if (mat.emissiveColor) {
+                    mat.emissiveColor = mat.emissiveColor.add(qualityGlow);
+                } else {
+                    mat.emissiveColor = qualityGlow;
+                }
+                if (quality >= 2) {
+                    if (mat.specularColor) {
+                        mat.specularColor = new BABYLON.Color3(0.4, 0.4, 0.4);
+                    }
+                    if (mat.metallic !== undefined) {
+                        mat.metallic = Math.min((mat.metallic || 0) + 0.1, 0.5);
+                        mat.roughness = Math.max((mat.roughness || 1) - 0.1, 0.3);
+                    }
+                }
+                originalColors.push({ mesh: mesh, color: mat.diffuseColor ? mat.diffuseColor.clone() : null });
+            } else {
+                // 无材质的mesh用基础颜色
+                var fallbackMat = new BABYLON.StandardMaterial("petMat_" + i, scene);
+                fallbackMat.backFaceCulling = false;
+                fallbackMat.diffuseColor = baseColor;
+                fallbackMat.emissiveColor = qualityGlow;
+                mesh.material = fallbackMat;
+                originalColors.push({ mesh: mesh, color: baseColor.clone() });
+            }
+        }
+
+        self.battle3D.petOriginalColors = originalColors;
+
+        // === 品质粒子 ===
+        self._setupQualityParticles(petGroup, quality, scene);
+
+        petGroup.scaling.setAll(1.2);
+
+        if (self.battle3D.petHealthBar) {
+            self.battle3D.petHealthBar.scaling.set(0.33, 0.67, 0.33);
+            self.battle3D.petHealthBar.position.y = 1.8;
+        }
+        if (self.battle3D.petEnergyBar) {
+            self.battle3D.petEnergyBar.scaling.set(0.33, 0.67, 0.33);
+            self.battle3D.petEnergyBar.position.y = 1.5;
+        }
+
+        self._setupPetTooltip(petGroup);
+        self._startPetIdleAnimation(petGroup, quality);
+
+        console.log('✅ 宠物GLB加载完成:', petInfo.name, '品质:', quality);
+    }, null, function(scene, message) {
+        console.error('❌ GLB加载错误:', message);
+        petGroup.dispose();
+        self._createPetFromGeometry(petInfo);
+    });
+};
+
+// 品质粒子
+EndlessCultivationGame.prototype._setupQualityParticles = function(petGroup, quality, scene) {
+    if (quality < 2) return;
+    var texUrl = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAAAXNSR0IArs4c6QAAADxJREFUGFdj/P///38GBgZGRkYGBgYWBgYGJgYGBmYGBgYWKM3AAKUYiTQDXSkGBgYGBtY/BkYGBgYARF0GP0AAAAAASUVORK5CYII=";
+    var p = new BABYLON.ParticleSystem("qP", quality >= 3 ? 50 : 25, scene);
+    p.particleTexture = new BABYLON.Texture(texUrl, scene);
+    p.emitter = petGroup;
+    p.minEmitBox = new BABYLON.Vector3(-0.3, 0, -0.3);
+    p.maxEmitBox = new BABYLON.Vector3(0.3, 1.5, 0.3);
+    p.minSize = 0.02; p.maxSize = quality >= 3 ? 0.08 : 0.05;
+    p.minLifeTime = 0.6; p.maxLifeTime = 1.4;
+    p.emitRate = quality >= 3 ? 25 : 12;
+    p.direction1 = new BABYLON.Vector3(-0.1, 0.5, -0.1);
+    p.direction2 = new BABYLON.Vector3(0.1, 1.0, 0.1);
+    p.gravity = new BABYLON.Vector3(0, -0.4, 0);
+    if (quality === 2) {
+        p.color1 = new BABYLON.Color4(1, 0.85, 0.2, 0.8);
+        p.color2 = new BABYLON.Color4(1, 0.7, 0.0, 0.5);
+        p.colorDead = new BABYLON.Color4(1, 0.5, 0, 0);
+    } else {
+        p.color1 = new BABYLON.Color4(1, 0.3, 0.5, 0.9);
+        p.color2 = new BABYLON.Color4(0.3, 0.5, 1.0, 0.7);
+        p.colorDead = new BABYLON.Color4(1, 1, 0.3, 0);
+    }
+    p.start();
+    this.battle3D.petParticleSystem = p;
+
+    if (quality >= 3) {
+        var halo = BABYLON.MeshBuilder.CreateTorus("petHalo", {diameter:1.2, thickness:0.03, tessellation:32}, scene);
+        halo.parent = petGroup; halo.position.y = 0.05; halo.rotation.x = Math.PI/2;
+        var hm = new BABYLON.StandardMaterial("hM", scene);
+        hm.emissiveColor = new BABYLON.Color3(1, 0.3, 0.5); hm.alpha = 0.6;
+        halo.material = hm;
+        this.battle3D.petHalo = halo;
+    }
+};
+
+// 待机动画
+EndlessCultivationGame.prototype._startPetIdleAnimation = function(petGroup, quality) {
+    var self = this, baseY = petGroup.position.y, startT = Date.now();
+    var anim = function() {
+        if (!self.battle3D.pet || self.battle3D.pet !== petGroup || !self.transientState.battle.inBattle) return;
+        var t = (Date.now() - startT) / 1000;
+        petGroup.position.y = baseY + Math.sin(t * 1.5) * 0.08;
+        petGroup.rotation.z = Math.sin(t * 1.2) * 0.03;
+        if (self.battle3D.petHalo) {
+            self.battle3D.petHalo.rotation.z = t * 0.8;
+            var r = 0.5 + 0.5 * Math.sin(t * 2), g = 0.5 + 0.5 * Math.sin(t * 2 + 2.1), b = 0.5 + 0.5 * Math.sin(t * 2 + 4.2);
+            self.battle3D.petHalo.material.emissiveColor = new BABYLON.Color3(r, g, b);
+        }
+        if (quality >= 3 && self.battle3D.petOriginalColors) {
+            var fR = 0.5 + 0.5 * Math.sin(t * 3), fG = 0.5 + 0.5 * Math.sin(t * 3 + 2.1), fB = 0.5 + 0.5 * Math.sin(t * 3 + 4.2);
+            for (var j = 0; j < self.battle3D.petOriginalColors.length; j++) {
+                var oc = self.battle3D.petOriginalColors[j];
+                if (oc.mesh.material) oc.mesh.material.emissiveColor = new BABYLON.Color3(fR*0.35, fG*0.35, fB*0.35);
+            }
+        }
+        requestAnimationFrame(anim);
+    };
+    requestAnimationFrame(anim);
+};
+
+// 受击闪烁
+EndlessCultivationGame.prototype.playPetHitAnimation = function() {
+    var pet = this.battle3D && this.battle3D.pet;
+    if (!pet) return;
+    var oc = this.battle3D.petOriginalColors;
+    if (!oc || !oc.length) return;
+    for (var i = 0; i < oc.length; i++) {
+        if (oc[i].mesh.material) {
+            oc[i].mesh.material.diffuseColor = new BABYLON.Color3(1,1,1);
+            oc[i].mesh.material.emissiveColor = new BABYLON.Color3(0.8,0.8,0.8);
+        }
+    }
+    var self = this, start = Date.now();
+    var restore = function() {
+        if (Date.now() - start >= 300) {
+            for (var j = 0; j < oc.length; j++) if (oc[j].mesh.material) {
+                oc[j].mesh.material.diffuseColor = oc[j].color;
+                oc[j].mesh.material.emissiveColor = oc[j].color.scale(0.2);
+            }
+            return;
+        }
+        requestAnimationFrame(restore);
+    };
+    requestAnimationFrame(restore);
+};
+
+// 死亡消散
+EndlessCultivationGame.prototype.playPetDeathAnimation = function() {
+    var pet = this.battle3D && this.battle3D.pet;
+    if (!pet) return;
+    if (this.battle3D.petParticleSystem) this.battle3D.petParticleSystem.stop();
+    var self = this, start = Date.now();
+    var anim = function() {
+        var p = Math.min((Date.now() - start) / 800, 1);
+        pet.scaling.setAll(1.2 * (1 - p * 0.5));
+        pet.position.y += 0.01;
+        var ch = pet.getChildMeshes();
+        for (var i = 0; i < ch.length; i++) if (ch[i].material) ch[i].material.alpha = 1 - p;
+        if (p < 1) requestAnimationFrame(anim);
+        else {
+            if (self.battle3D.petParticleSystem) { self.battle3D.petParticleSystem.dispose(); self.battle3D.petParticleSystem = null; }
+            if (self.battle3D.petHalo) { self.battle3D.petHalo.dispose(); self.battle3D.petHalo = null; }
+        }
+    };
+    requestAnimationFrame(anim);
+};
+// 设置宠物血条能量条
+EndlessCultivationGame.prototype._setupPetHealthBars = function(petGroup, scale) {
+    const petHpBar = this.createHealthBar(0xff0000);
+    petHpBar.scaling.x = 0.5 / scale;
+    petHpBar.scaling.y = 1.0 / scale;
+    petHpBar.scaling.z = 0.5 / scale;
+    petHpBar.position.x = 0;
+    petHpBar.position.y = 1.2;
+    petHpBar.position.z = 0;
+    petHpBar.isVisible = true;
+    petHpBar.parent = petGroup;
+    this.battle3D.petHealthBar = petHpBar;
+
+    const petEnergyBar = this.createHealthBar(0x0000ff);
+    petEnergyBar.scaling.x = 0.5 / scale;
+    petEnergyBar.scaling.y = 1.0 / scale;
+    petEnergyBar.scaling.z = 0.5 / scale;
+    petEnergyBar.position.x = 0;
+    petEnergyBar.position.y = 1.05;
+    petEnergyBar.position.z = 0;
+    petEnergyBar.isVisible = true;
+    petEnergyBar.parent = petGroup;
+    this.battle3D.petEnergyBar = petEnergyBar;
+};
+
+// 设置宠物鼠标悬停提示
+EndlessCultivationGame.prototype._setupPetTooltip = function(petGroup) {
+    if (!this.transientState.battle.inBattle || !this.battle3D.scene || !petGroup) return;
+
+    const childMeshes = petGroup.getChildMeshes();
+    const self = this;
+    if (childMeshes.length > 0) {
+        childMeshes.forEach(function(mesh, index) {
+            mesh.actionManager = new BABYLON.ActionManager(self.battle3D.scene);
+            mesh.actionManager.registerAction(new BABYLON.ExecuteCodeAction(
+                BABYLON.ActionManager.OnPointerOverTrigger,
+                function() { self.showBattleTooltip('pet'); }
+            ));
+            mesh.actionManager.registerAction(new BABYLON.ExecuteCodeAction(
+                BABYLON.ActionManager.OnPointerOutTrigger,
+                function() { self.hideBattleTooltip(); }
+            ));
+        });
+    }
+};
+
+// 几何体回退模型
+EndlessCultivationGame.prototype._createPetFromGeometry = function(petInfo) {
+    const scene = this.battle3D.scene;
     const scale = 0.6;
 
-    // 宠物颜色（绿色系）
+    const category = this.getEnemyCategory ? this.getEnemyCategory(petInfo.type || '兽') : 'QUAD';
     const color = new BABYLON.Color3(
         petInfo.color?.r || 0.3,
         petInfo.color?.g || 0.7,
@@ -3703,21 +4019,19 @@ EndlessCultivationGame.prototype.createPetModel = function(petInfo) {
     material.emissiveColor = new BABYLON.Color3(0.1, 0.25, 0.15);
 
     const petGroup = new BABYLON.TransformNode("petGroup", scene);
-
-    // 根据类别创建外形（复用敌人模型构建器）
     if (this.buildEnemyByCategory) {
         this.buildEnemyByCategory(petGroup, category, material, scene);
     }
-
     petGroup.scaling.setAll(scale);
-
     petGroup.position.x = -1.5;
     petGroup.position.y = 0;
     petGroup.position.z = 0.5;
     petGroup.rotation.y = Math.PI / 2;
-
     this.battle3D.pet = petGroup;
-    console.log('✅ 宠物3D模型已创建:', petInfo.name, '类别:', category);
+
+    this._setupPetHealthBars(petGroup, scale);
+    this._setupPetTooltip(petGroup);
+    console.log('✅ 宠物几何体模型已创建:', petInfo.name);
 };
 
 // 宠物攻击动画（冲锋 → 回位）

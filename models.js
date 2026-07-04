@@ -452,7 +452,8 @@ EndlessCultivationGame.prototype.updateHealthBars = function() {
 
     // 更新玩家灵力条
     if (this.battle3D.playerEnergyBar) {
-        const playerEnergyPercent = Math.max(0, this.persistentState.player.energy / this.persistentState.player.maxEnergy);
+        const actualMaxEnergy = this.getActualStats().maxEnergy || this.persistentState.player.maxEnergy;
+        const playerEnergyPercent = Math.max(0, this.persistentState.player.energy / actualMaxEnergy);
         this.battle3D.playerEnergyBar.scaling.x = playerEnergyPercent;
         this.battle3D.playerEnergyBar.position.x = 0; // 固定位置，从左边开始减少
     }
@@ -555,8 +556,36 @@ EndlessCultivationGame.prototype.updateHealthBars = function() {
         }
     }
 
-    // 更新宠物血条
+    // 更新宠物血条面板
     if (this.petSystem && this.transientState.pets && this.transientState.pets.length > 0) {
         this.petSystem.updatePetHealthPanel();
+    }
+
+    // ✅ 更新宠物3D头顶血条/能量条
+    if (this.battle3D.petHealthBar && this.transientState.pets && this.transientState.pets.length > 0) {
+        const pet = this.transientState.pets[0];
+        const petScale = 0.6; // 宠物缩放
+
+        // 血条（绿色）
+        if (pet.hp <= 0) {
+            this.battle3D.petHealthBar.isVisible = false;
+        } else {
+            this.battle3D.petHealthBar.isVisible = true;
+            const hpPercent = Math.max(0, pet.hp / pet.maxHp);
+            this.battle3D.petHealthBar.scaling.x = hpPercent * (0.5 / petScale);
+            this.battle3D.petHealthBar.position.x = 0;
+        }
+
+        // 能量条（蓝色）
+        if (this.battle3D.petEnergyBar) {
+            if (pet.hp <= 0) {
+                this.battle3D.petEnergyBar.isVisible = false;
+            } else {
+                this.battle3D.petEnergyBar.isVisible = true;
+                const epPercent = Math.max(0, (pet.energy || 0) / (pet.maxEnergy || 100));
+                this.battle3D.petEnergyBar.scaling.x = epPercent * (0.5 / petScale);
+                this.battle3D.petEnergyBar.position.x = 0;
+            }
+        }
     }
 };
