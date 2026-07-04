@@ -89,6 +89,22 @@
 - ✅ 点击移动碰撞检测
 - ✅ 小地图点击跑向敌人
 
+### 剧情与任务系统
+- ✅ 主线剧情播放（打字机效果、角色立绘、分支选项）
+- ✅ 任务间叙事节拍（按境界/地图条件随机触发，不打断节奏）
+- ✅ 主线任务（境界推进触发剧情）[mainQuest.js](mainQuest.js)
+- ✅ 日常任务系统 [dailyQuest.js](dailyQuest.js)
+- ✅ 角色好感度/关系等级（影响支线解锁）[affinitySystem.js](affinitySystem.js)
+
+### 养成与经济系统
+- ✅ 副本系统（多难度波次，含精英/BOSS）[dungeon.js](dungeon.js)
+- ✅ 宠物/灵兽系统（3D 预览、战斗展示）[petSystem.js](petSystem.js)
+- ✅ 图鉴/收藏系统（怪物、装备、宠物收集）[collectionSystem.js](collectionSystem.js)
+- ✅ 装备图鉴记录（击败敌人自动入册）
+- ✅ VIP 与充值系统 [vipSystem.js](vipSystem.js)
+- ✅ 灵玉商店 [jadeShop.js](jadeShop.js)
+- ✅ 程序化音效合成 [audio-synthesizer.js](audio-synthesizer.js)
+
 ---
 
 ## 🛠️ 技术栈
@@ -108,7 +124,11 @@
 - **CORS** - 跨域支持
 
 ### 数据存储
-- **JSON 文件系统** - 用户数据与游戏存档
+- **JSON 文件系统** - 用户数据与游戏存档（`users/`、`saves/`，运行时生成）
+
+### 开发与测试
+- **Vitest** - 单元/回归测试（328 用例，`npm test` 运行）
+- **纯原生 ES6+** - 无打包工具，脚本通过 `<script>` 直接加载，类挂载到 `window.*`
 
 ---
 
@@ -154,51 +174,53 @@
 
 ## 📁 项目结构
 
+> **注意**：所有源文件平铺在仓库根目录，没有 `js/` 或 `server/` 子目录。
+
 ```
 endlessWinter/
-├── 📄 index.html              # 主游戏页面
+├── 📄 index.html              # 主游戏页面（含 UI 与脚本引用）
 ├── 📄 login.html              # 登录/注册页面
-├── 📄 skill-image-check.html  # 技能图标检查工具
+├── 🖥️ server.js               # Express 服务器（账号 + JSON 云存档）
 │
-├── 📂 js/                     # JavaScript 模块
-│   ├── 🎮 game.js             # 游戏核心逻辑
-│   ├── ⚔️ combatlogic.js      # 战斗逻辑
-│   ├── 🎨 battle3d.js         # 3D战斗场景
-│   ├── 🗺️ map.js              # 地图系统
-│   ├── 🎯 realmSkillSystem.js  # 境界技能系统
-│   ├── ⚙️ equipment.js        # 装备系统
-│   ├── 🔊 audio.js            # 音效系统
-│   ├── 🎨 models.js           # 3D模型
-│   └── 📊 game-metadata.js    # 游戏元数据
+├── 🎮 game.js                 # 游戏核心逻辑（主类，~8700 行）
+├── ⚔️ combatlogic.js          # 战斗应用/UI 层（调用 CombatEngine）
+├── 🎨 battle3d.js             # 3D 战斗场景（Babylon.js，~4000 行）
+├── 🗺️ map.js                  # 3D 地图探索系统
+├── 🎯 realmSkillSystem.js     # 境界技能系统
+├── ⚙️ equipment.js            # 装备系统
+├── 🏯 dungeon.js              # 副本系统
+├── 📜 mainQuest.js            # 主线任务 + 剧情触发
+├── 📅 dailyQuest.js           # 日常任务
+├── 💎 jadeShop.js             # 灵玉商店
+├── 🐾 petSystem.js            # 宠物/灵兽系统
+├── 📚 collectionSystem.js     # 图鉴/收藏系统
+├── 🤝 affinitySystem.js       # 角色好感度系统
+├── 🎬 story-engine.js         # 剧情播放引擎（打字机/分支/立绘）
+├── 📖 story-data.js           # 剧情数据（从 metadata 抽离）
+├── 🎭 story-beat-engine.js    # 任务间叙事节拍引擎
+├── 🖼️ model-preview.js        # 通用 3D 模型预览组件
+├── 🎨 models.js / enemy-models.js / sizes.js  # 3D 模型与尺寸
+├── 🔊 audio.js / audio-synthesizer.js         # 音效与合成
+├── 👑 vipSystem.js            # VIP 系统
+├── 📊 game-metadata.js        # 游戏元数据（技能/装备/敌人配置）
 │
-├── 📂 server/                 # 后端服务
-│   └── 🖥️ server.js           # Express 服务器
+├── 📂 src/                    # 重构后的新架构（纯函数 + 事件驱动）
+│   ├── ⚙️ combat/             #   纯函数战斗引擎 + 上下文构建器
+│   ├── 🎙️ core/EventManager.js #  事件总线
+│   ├── 🖥️ ui/UIManager.js     #   细粒度 UI 更新管理
+│   └── 🔊 audio/AudioManager.js
 │
-├── 📂 Images/                 # 游戏图片资源
-│   ├── 🖼️ equipment/          # 装备图标
-│   ├── 🖼️ characters/         # 角色图片
-│   ├── 🖼️ skills/             # 技能图标
-│   └── 🖼️ buttons/            # 按钮图片
+├── 📂 tests/                  # Vitest 测试套件（328 用例）
+├── 📂 docs/                   # 项目文档（含 docs/refactor 重构记录）
+├── 📂 Images/                 # 游戏图片（装备/角色/技能图标）
+├── 📂 assets/                 # 静态资源（纹理、角色立绘）
+├── 📂 models/                 # 3D 模型（.glb）
+├── 📂 lib/                    # 第三方库（Babylon.js、draco 解码器）
 │
-├── 📂 assets/                 # 静态资源
-│   └── 📂 textures/           # 3D纹理
-│
-├── 📂 lib/                    # 第三方库
-│   ├── 📚 babylon.js          # Babylon.js引擎
-│   └── 📚 babylonjs.loaders.min.js
-│
-├── 📂 docs/                   # 项目文档
-│   ├── systems/               # 系统设计文档
-│   ├── guides/                # 开发指南
-│   ├── api/                   # API 文档
-│   └── ui/                    # UI 设计
-│
-├── 📂 saves/                  # 游戏存档目录
-├── 📂 users/                  # 用户数据目录
-│
-├── 📄 package.json            # 项目配置
-├── 📄 .gitignore              # Git忽略配置
-└── 📄 README.md               # 项目说明文档
+├── 📂 saves/  📂 users/       # 运行时数据（已 gitignore）
+├── 📂 config/  📂 data/       # 配置与 token（已 gitignore）
+├── 📄 package.json / vitest.config.js / server.js
+└── 📄 README.md / TODO.md / CHANGELOG.md
 ```
 
 ---
@@ -339,6 +361,35 @@ endlessWinter/
 
 ---
 
+## 🏗️ 架构现状（重构进行中）
+
+项目正在从「单文件大类」向「分层 + 事件驱动」架构迁移，`src/` 是重构后的新区：
+
+### 三层战斗架构
+```
+combatlogic.js        应用/UI 层：动画、特效、状态应用（副作用）
+    ↓ 调用
+CombatContextBuilder  上下文层：把 game 对象转成纯数据
+    ↓ 传递
+src/combat/CombatEngine.js  纯函数层：伤害/命中/暴击计算，无副作用、可测试
+```
+
+- 战斗核心计算（16 个方法）已迁至 [src/combat/CombatEngine.js](src/combat/CombatEngine.js)
+- 副作用与 UI 方法按设计保留在 `combatlogic.js`
+- 详见 [docs/refactor/](docs/refactor/) 下迁移报告
+
+### 事件驱动 UI
+- [src/core/EventManager.js](src/core/EventManager.js) - 事件总线
+- [src/ui/UIManager.js](src/ui/UIManager.js) - 细粒度 UI 更新 + 节流，替代高频全量刷新
+- 任务、日常、收藏、装备、升级、突破等系统均通过事件解耦
+
+### 已知技术债
+- `game.js` 仍是 ~8700 行的「上帝类」，是后续拆分的重点
+- 后端用 JSON 文件存储，存在并发写入风险，不可横向扩展
+- 大体积 3D 模型（如 75MB 原始 glb）已 gitignore，应改用 Git LFS 或 CDN
+
+---
+
 ## 🎲 游戏机制
 
 ### 境界压制
@@ -430,9 +481,11 @@ Response: { success: true, gameState }
 ### 调试技巧
 ```javascript
 // 在浏览器控制台中
-game.gameState  // 查看游戏状态
-game.player     // 查看玩家数据
-game.metadata   // 查看元数据
+game.persistentState   // 持久化状态（玩家/存档数据，会被保存）
+game.transientState    // 临时状态（当前场景、敌人等，不保存）
+game.metadata          // 游戏元数据（技能/装备/敌人配置）
+game.combatEngine      // 纯函数战斗引擎
+game.uiManager         // UI 更新管理器
 ```
 
 ---
