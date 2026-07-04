@@ -5,3 +5,10 @@ users
 node_modules
 config
 data
+
+# 大体积/临时二进制资产（不应入库，改用 Git LFS 或外部存储）
+models/*_original.glb
+models/*.glb.new
+
+# 备份文件
+*.backup
