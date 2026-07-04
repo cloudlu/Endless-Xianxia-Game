@@ -5117,7 +5117,7 @@ class EndlessCultivationGame {
                 const token = localStorage.getItem('cultivationToken');
 
                 // 直接保存 persistentState，无需过滤
-                const response = await fetch('http://localhost:3002/api/save', {
+                const response = await fetch('/api/save', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -5146,7 +5146,7 @@ class EndlessCultivationGame {
         try {
             const token = localStorage.getItem('cultivationToken');
 
-            const response = await fetch('http://localhost:3002/api/load', {
+            const response = await fetch('/api/load', {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
@@ -6169,7 +6169,7 @@ class EndlessCultivationGame {
             // 调用服务器端登出API
             const token = localStorage.getItem('cultivationToken');
             if (token) {
-                await fetch('http://localhost:3002/api/logout', {
+                await fetch('/api/logout', {
                     method: 'POST',
                     headers: {
                         'Authorization': `Bearer ${token}`
@@ -6262,7 +6262,7 @@ class EndlessCultivationGame {
                 const token = localStorage.getItem('cultivationToken');
 
                 try {
-                    const response = await fetch('http://localhost:3002/api/delete-account', {
+                    const response = await fetch('/api/delete-account', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
