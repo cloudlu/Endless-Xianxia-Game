@@ -2469,8 +2469,16 @@ class EndlessCultivationGame {
             critDamage: (p.critDamage || 0) + (ee.critDamage || 0)  // 暴击伤害值（用于计算暴击倍率）
         };
 
-        // 注意：VIP加成已在 equipmentSystem.calculateEquipmentEffects() 中
-        // 叠加到 equipmentEffects 上，因此这里不需要再单独计算
+        // VIP 加成（统一 mul_pct 阶段）：attack/defense/maxHp 按百分比乘法叠加，
+        // critBonus 加到暴击率（add，百分点→小数）。
+        // 移自 equipment.calculateEquipmentEffects()，避免缓存脏数据 & 裸体玩家加成为 0。
+        if (this.vipSystem) {
+            const vb = this.vipSystem.getBonus();
+            if (vb.attackBonus > 0) baseStats.attack = Math.floor(baseStats.attack * (1 + vb.attackBonus / 100));
+            if (vb.defenseBonus > 0) baseStats.defense = Math.floor(baseStats.defense * (1 + vb.defenseBonus / 100));
+            if (vb.hpBonus > 0) baseStats.maxHp = Math.floor(baseStats.maxHp * (1 + vb.hpBonus / 100));
+            if (vb.critBonus > 0) baseStats.criticalRate += vb.critBonus / 100;
+        }
 
         // 战斗中临时百分比加成（allStatsBonus buff）—— mul_pct 加法叠加
         // tempAttackBonus/tempDefenseBonus 在回合开始由 processBuffsAtTurnStart 计算、
@@ -2609,21 +2617,21 @@ class EndlessCultivationGame {
                 equipment: ee.attack || 0,
                 realm: rb.attack,
                 vipPercent: vipBonus.attackBonus,
-                final: p.attack + (ee.attack || 0) + rb.attack
+                final: Math.floor((p.attack + (ee.attack || 0) + rb.attack) * (1 + (vipBonus.attackBonus || 0) / 100))
             },
             defense: {
                 base: p.defense,
                 equipment: ee.defense || 0,
                 realm: rb.defense,
                 vipPercent: vipBonus.defenseBonus,
-                final: p.defense + (ee.defense || 0) + rb.defense
+                final: Math.floor((p.defense + (ee.defense || 0) + rb.defense) * (1 + (vipBonus.defenseBonus || 0) / 100))
             },
             maxHp: {
                 base: p.maxHp,
                 equipment: ee.hp || 0,
                 realm: rb.hp,
                 vipPercent: vipBonus.hpBonus,
-                final: p.maxHp + (ee.hp || 0) + rb.hp
+                final: Math.floor((p.maxHp + (ee.hp || 0) + rb.hp) * (1 + (vipBonus.hpBonus || 0) / 100))
             },
             luck: {
                 base: p.luck,
@@ -2642,7 +2650,7 @@ class EndlessCultivationGame {
                 equipment: ee.criticalRate || 0,
                 luckBonus: ((p.luck + (ee.luck || 0) + (rb.luck || 0)) * 0.001),  // 幸运加成
                 vip: (vipBonus.critBonus || 0) / 100,  // VIP加成也转为小数
-                final: ((p.criticalRate || 5) / 100) + (ee.criticalRate || 0) + ((p.luck + (ee.luck || 0) + (rb.luck || 0)) * 0.001)
+                final: ((p.criticalRate || 5) / 100) + (ee.criticalRate || 0) + ((p.luck + (ee.luck || 0) + (rb.luck || 0)) * 0.001) + ((vipBonus.critBonus || 0) / 100)
             },
             dodgeRate: {
                 base: (p.dodgeRate || 0) / 100,

@@ -1295,23 +1295,8 @@ class EquipmentSystem {
             }
         }
 
-        // 叠加VIP等级加成
-        if (this.game.vipSystem) {
-            const bonus = this.game.vipSystem.getBonus();
-            if (bonus.attackBonus > 0) {
-                effects.attack = Math.floor(effects.attack * (1 + bonus.attackBonus / 100));
-            }
-            if (bonus.defenseBonus > 0) {
-                effects.defense = Math.floor(effects.defense * (1 + bonus.defenseBonus / 100));
-            }
-            if (bonus.hpBonus > 0) {
-                effects.hp = Math.floor(effects.hp * (1 + bonus.hpBonus / 100));
-            }
-            if (bonus.critBonus > 0) {
-                // VIP暴击加成：从百分比格式转换为小数格式（除以100）
-                effects.criticalRate = (effects.criticalRate || 0) + (bonus.critBonus / 100);
-            }
-        }
+        // VIP 加成已从装备效果中移除，改由 game.getActualStats() 统一应用，
+        // 避免烘焙进 equipmentEffects 缓存导致 VIP 升级后脏数据、以及裸体玩家加成为 0 的问题。
 
         return effects;
     }
