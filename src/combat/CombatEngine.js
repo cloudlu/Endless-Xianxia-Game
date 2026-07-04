@@ -363,7 +363,7 @@ class CombatEngine {
 
         switch (effect.type) {
             case 'damage':
-                const damage = Math.floor(player.attack * effect.multiplier || 1);
+                const damage = Math.floor(player.attack * (effect.multiplier || 1));
                 result.updatedEnemy = {
                     ...(result.updatedEnemy || enemy),
                     hp: Math.max(0, (result.updatedEnemy?.hp || enemy.hp) - damage)
