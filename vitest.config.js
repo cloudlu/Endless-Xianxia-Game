@@ -10,6 +10,8 @@ export default defineConfig({
     exclude: ['node_modules', 'dist'],
     // 全局变量
     globals: true,
+    // 每个测试后自动还原 vi.spyOn / mock，避免跨用例泄漏（Math.random 等）
+    restoreMocks: true,
     // 环境
     environment: 'node',
     // 覆盖率配置

@@ -10,6 +10,10 @@ describe('CombatEngine 纯函数式测试', () => {
     let context;
 
     beforeEach(() => {
+        // 确定性 RNG：默认强制命中（Math.random()*100=0.1 < hitChance[5,95]），
+        // 消除"命中类用例偶发 miss"的抖动。需要 miss/特定 crit 的用例自行覆盖 Math.random。
+        // restoreMocks:true 会在每个用例后自动还原。
+        vi.spyOn(Math, 'random').mockReturnValue(0.001);
         // 创建标准的战斗上下文
         context = {
             player: {
@@ -326,6 +330,8 @@ describe('CombatEngine 纯函数式测试', () => {
         });
 
         it('多次调用应该产生不同结果', () => {
+            // 本用例专门验证随机性，还原真实 Math.random（覆盖 beforeEach 的确定性 spy）
+            vi.spyOn(Math, 'random').mockRestore();
             const results = [];
             for (let i = 0; i < 10; i++) {
                 results.push(CombatEngine.rollCritDamage(0).multiplier);

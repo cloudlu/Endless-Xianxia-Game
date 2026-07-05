@@ -301,6 +301,8 @@ describe('多敌人战斗系统测试', () => {
         });
 
         it('精英单体技能应该只伤害玩家', () => {
+            // 强制命中（避免 RNG 未命中导致 totalPlayerDamage=0 的偶发失败）
+            vi.spyOn(Math, 'random').mockReturnValue(0.001);
             const skill = multiEnemyContext.enemies[1].skills[0]; // 单体技能
             const result = CombatEngine.calculateEnemySkillAttack(multiEnemyContext, 1, skill);
 
