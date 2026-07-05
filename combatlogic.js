@@ -925,31 +925,14 @@ EndlessCultivationGame.prototype.enemyDefeated = function() {
         this.addBattleLog(`敌人没有掉落装备。`);
     }
 
-    // 突破石掉落（只有BOSS有几率掉落）
-    if (this.transientState.enemy.isBoss) {
-        const realm = this.persistentState.player.realm;
-        let dropChance = 0;
-        
-        // 根据境界和阶段计算掉落概率
-        if (realm.currentRealm === 0) {
-            // 武者境界
-            if (realm.currentStage === 10) {
-                // 武者巅峰级别，低概率掉落
-                dropChance = 0.05; // 5%
-            } else {
-                // 武者非巅峰级别，不掉落
-                dropChance = 0;
-            }
-        } else {
-            // 炼气及以上境界，随着境界提高，掉落概率增加
-            dropChance = 0.05 + (realm.currentRealm * 0.05); // 5% + 每提高一个境界增加5%
-            dropChance = Math.min(dropChance, 0.5); // 最高50%概率
-        }
-        
-        // 检查是否掉落突破石
-        if (Math.random() < dropChance) {
-            // 掉落1-3个突破石
-            const stonesGained = Math.floor(Math.random() * 3) + 1;
+    // 突破石掉落（配置驱动，与 CombatEngine 共用同一纯函数，避免双套不一致）
+    if (this.combatEngine && this.metadata.breakthroughDropRates) {
+        const stonesGained = this.combatEngine.rollBreakthroughDrop(
+            this.transientState.enemy,
+            this.persistentState.player.realm,
+            this.metadata.breakthroughDropRates
+        );
+        if (stonesGained > 0) {
             this.persistentState.resources.breakthroughStones = (this.persistentState.resources.breakthroughStones || 0) + stonesGained;
             this.addBattleLog(`获得了${stonesGained}个突破石！`);
         }

@@ -148,7 +148,21 @@ const gameMetadata = {
         // 化神境 (realm 5)
         ["苍铁", "鸿蒙", "混沌", "须弥", "造化"]
     ],
-    
+
+    // 突破石掉落配置（F2P 闭环关键）：普通怪不掉、精英低概率（F2P 主通道）、Boss 按境界递增
+    // 调整这些数值即可独立调节突破石经济，互不牵连（北极星 3：平衡易调整）
+    breakthroughDropRates: {
+        normal: 0,        // 普通怪不掉落
+        elite: 0.03,      // 精英怪 3% 概率（免费玩家突破石主来源）
+        boss: {
+            baseChance: 0.05,           // 基础 5%
+            perRealmBonus: 0.05,        // 每提升一个境界 +5%
+            maxChance: 0.5,             // 封顶 50%
+            realm0OnlyAtStage10: true   // 武者境仅 stage10 Boss 掉落（保留原设计）
+        },
+        amount: { min: 1, max: 3 }      // 命中后掉落数量区间
+    },
+
     // 装备掉落概率配置（5个品质：白、蓝、紫、金、彩）
     dropRates: {
         // 普通怪物掉率
@@ -2980,17 +2994,6 @@ const gameMetadata = {
                 currentStage: 1,
                 currentLevel: 1
             }
-        },
-        // 升级属性增长
-        levelUpStats: {
-            attack: 2,
-            defense: 1,
-            maxHp: 20,
-            luck: 0.5,
-            maxEnergy: 10,
-            speed: 1,
-            accuracy: 2,
-            dodge: 1
         },
         // 回复速度（每秒）
         regenRates: {

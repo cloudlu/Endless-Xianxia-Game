@@ -13,7 +13,7 @@ if (!enemyTypesMatch) {
 
 // 解析每个怪物
 const enemyTypes = [];
-const enemyRegex = /{\s*name:\s*"([^"]+)",\s*baseHp:\s*(\d+),\s*baseAttack:\s*(\d+),\s*baseDefense:\s*(\d+),[\s\S]*?expMultiplier:\s*([\d.]+),/g;
+const enemyRegex = /{\s*name:\s*"([^"]+)",\s*(?:id:\s*"[^"]*",\s*)?baseHp:\s*(\d+),\s*baseAttack:\s*(\d+),\s*baseDefense:\s*(\d+),[\s\S]*?expMultiplier:\s*([\d.]+),/g;
 let match;
 while ((match = enemyRegex.exec(enemyTypesMatch[1])) !== null) {
     enemyTypes.push({

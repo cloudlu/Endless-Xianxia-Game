@@ -92,7 +92,9 @@ class CombatContextBuilder {
         return {
             skillConfig: game.metadata.skills || {},
             realmConfig: game.metadata.realmConfig || [],
-            dropRates: game.metadata.dropRates || {}
+            dropRates: game.metadata.dropRates || {},
+            breakthroughDropRates: game.metadata.breakthroughDropRates || null,
+            realm: game.persistentState?.player?.realm || null
         };
     }
     /**

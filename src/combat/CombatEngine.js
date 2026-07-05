@@ -797,15 +797,12 @@ class CombatEngine {
         const hpRecovery = Math.floor(player.maxHp * hpRecoveryPercent);
         const actualHpRecovered = Math.min(hpRecovery, player.maxHp - player.hp);
 
-        // 突破石掉落计算（只有BOSS有几率）
-        let breakthroughStonesGained = 0;
-        if (enemy.isBoss) {
-            // 简化版突破石掉落逻辑（不依赖realm详情）
-            const dropChance = 0.05 + (Math.random() * 0.2); // 5-25%概率
-            if (Math.random() < dropChance) {
-                breakthroughStonesGained = Math.floor(Math.random() * 3) + 1;
-            }
-        }
+        // 突破石掉落计算（配置驱动：精英+F2P通道，Boss 按境界递增）
+        const breakthroughStonesGained = CombatEngine.rollBreakthroughDrop(
+            enemy,
+            context.realm,
+            context.breakthroughDropRates
+        );
 
         // 生成日志
         const logs = [];
@@ -866,6 +863,33 @@ class CombatEngine {
                 }
             ]
         };
+    }
+
+    /**
+     * 突破石掉落计算（纯函数，配置驱动）
+     * 单一真相源：combatlogic(单敌人主路径) 与 calculateEnemyDefeat 共用，避免双套不一致逻辑。
+     * @param {Object} enemy - 敌人实例（含 isBoss/isElite）
+     * @param {Object} realm - 玩家境界 { currentRealm, currentStage }
+     * @param {Object} rates - metadata.breakthroughDropRates
+     * @returns {number} 掉落数量（0 表示不掉）
+     */
+    static rollBreakthroughDrop(enemy, realm, rates) {
+        if (!rates) return 0;
+        let chance = 0;
+        if (enemy.isBoss) {
+            const b = rates.boss || {};
+            chance = (b.baseChance || 0) + ((realm?.currentRealm || 0) * (b.perRealmBonus || 0));
+            chance = Math.min(chance, b.maxChance || 0);
+            if (b.realm0OnlyAtStage10 && realm?.currentRealm === 0 && realm?.currentStage !== 10) chance = 0;
+        } else if (enemy.isElite) {
+            chance = rates.elite || 0;
+        } else {
+            chance = rates.normal || 0;
+        }
+        if (Math.random() >= chance) return 0;
+        const min = rates.amount?.min ?? 1;
+        const max = rates.amount?.max ?? 3;
+        return min + Math.floor(Math.random() * (max - min + 1));
     }
 
     /**
