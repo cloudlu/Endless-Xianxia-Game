@@ -1652,11 +1652,13 @@ EndlessCultivationGame.prototype.processAllEnemiesDefeated = function() {
     // 非副本多敌人模式 — 收集总奖励
     let totalExp = 0;
     let totalResources = { spiritStones: 0, iron: 0, herbs: 0 };
+    let totalBreakthroughStones = 0;
 
     for (let i = 0; i < this.transientState.enemies.length; i++) {
         const context = { ...this.combatContextBuilder.build(this), enemy: this.transientState.enemies[i] };
         const defeatResult = this.combatEngine.calculateEnemyDefeat(context);
         totalExp += defeatResult.data.expGained || 0;
+        totalBreakthroughStones += defeatResult.data.breakthroughStonesGained || 0;
         if (defeatResult.data.resourceDrop) {
             totalResources.spiritStones += defeatResult.data.resourceDrop.spiritStones || 0;
             totalResources.iron += defeatResult.data.resourceDrop.iron || 0;
@@ -1676,6 +1678,12 @@ EndlessCultivationGame.prototype.processAllEnemiesDefeated = function() {
         this.persistentState.resources.spiritStones = (this.persistentState.resources.spiritStones || 0) + totalResources.spiritStones;
         this.persistentState.resources.iron = (this.persistentState.resources.iron || 0) + totalResources.iron;
         this.persistentState.resources.herbs = (this.persistentState.resources.herbs || 0) + totalResources.herbs;
+    }
+
+    // 应用突破石（修复：多敌人路径此前丢弃了 calculateEnemyDefeat 的 breakthroughStonesGained）
+    if (totalBreakthroughStones > 0) {
+        this.persistentState.resources.breakthroughStones = (this.persistentState.resources.breakthroughStones || 0) + totalBreakthroughStones;
+        this.addBattleLog(`获得了${totalBreakthroughStones}个突破石！`);
     }
 
     // 恢复玩家HP（基于总经验）
