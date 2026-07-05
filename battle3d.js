@@ -3712,6 +3712,9 @@ EndlessCultivationGame.prototype.createPetModel = function(petInfo) {
         return;
     }
 
+    // 清理上一只宠物（含其子 mesh / 血条 / 粒子），杜绝重复创建导致的"原位置残留一只"鬼影
+    this._disposePetModel();
+
     // 从 metadata 获取 GLB 路径
     var petType = this.metadata.petTypes?.find(t => t.id === petInfo.typeId);
     var glbPath = petType?.glbPath;
@@ -3720,6 +3723,26 @@ EndlessCultivationGame.prototype.createPetModel = function(petInfo) {
         this._createPetFromGLB(petInfo, glbPath);
     } else {
         this._createPetFromGeometry(petInfo);
+    }
+};
+
+/** 销毁当前宠物模型及其所有附属（血条/粒子/骨骼动画引用） */
+EndlessCultivationGame.prototype._disposePetModel = function() {
+    if (!this.battle3D) return;
+    if (this.battle3D.petHealthBar) { try { this.battle3D.petHealthBar.dispose(); } catch(_){} this.battle3D.petHealthBar = null; }
+    if (this.battle3D.petEnergyBar) { try { this.battle3D.petEnergyBar.dispose(); } catch(_){} this.battle3D.petEnergyBar = null; }
+    if (this.battle3D.petParticleSystem) { try { this.battle3D.petParticleSystem.dispose(); } catch(_){} this.battle3D.petParticleSystem = null; }
+    if (this.battle3D.petAnimationGroups) {
+        try { this.battle3D.petAnimationGroups.forEach(g => g.stop()); } catch(_){}
+        this.battle3D.petAnimationGroups = null;
+    }
+    if (this.battle3D.pet) {
+        try {
+            // TransformNode.dispose() 不级联子 mesh，需手动销毁子节点，否则血条/身体变孤儿残留
+            this.battle3D.pet.getChildMeshes().forEach(m => { try { m.dispose(); } catch(_){} });
+            this.battle3D.pet.dispose();
+        } catch(_){}
+        this.battle3D.pet = null;
     }
 };
 
@@ -3758,6 +3781,12 @@ EndlessCultivationGame.prototype._createPetFromGLB = function(petInfo, glbPath) 
     }
 
     BABYLON.SceneLoader.ImportMesh("", "", glbPath, scene, function(meshes, ps, skeletons, animationGroups) {
+        // 异步竞态守卫：加载期间若已被新的 createPetModel 取代，丢弃这批 mesh，
+        // 否则会挂到已销毁的 petGroup 上变孤儿（"原地残留一只/不整体移动"的 ghost pet）
+        if (self.battle3D.pet !== petGroup) {
+            if (meshes) meshes.forEach(function(m){ try { m.dispose(); } catch(_){} });
+            return;
+        }
         if (!meshes || meshes.length === 0) {
             petGroup.dispose();
             self._createPetFromGeometry(petInfo);
@@ -3833,7 +3862,7 @@ EndlessCultivationGame.prototype._createPetFromGLB = function(petInfo, glbPath) 
         }
         if (self.battle3D.petEnergyBar) {
             self.battle3D.petEnergyBar.scaling.set(0.33, 0.67, 0.33);
-            self.battle3D.petEnergyBar.position.y = 1.5;
+            self.battle3D.petEnergyBar.position.y = 1.65;  // 收紧与血条的间距（原1.5，间隔过大）
         }
 
         self._setupPetTooltip(petGroup);
@@ -3842,6 +3871,8 @@ EndlessCultivationGame.prototype._createPetFromGLB = function(petInfo, glbPath) 
         console.log('✅ 宠物GLB加载完成:', petInfo.name, '品质:', quality);
     }, null, function(scene, message) {
         console.error('❌ GLB加载错误:', message);
+        // 异步竞态守卫：若已被取代，不再回退创建（避免又多造一只）
+        if (self.battle3D.pet !== petGroup) return;
         petGroup.dispose();
         self._createPetFromGeometry(petInfo);
     });

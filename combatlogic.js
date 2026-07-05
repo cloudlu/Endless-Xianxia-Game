@@ -1797,7 +1797,9 @@ EndlessCultivationGame.prototype.executePetAttack = function() {
             const target = enemies?.[targetIndex] || this.transientState.enemy;
             if (target && target.hp <= 0) {
                 this.addBattleLog(`${target.name}被击败了！`);
-                if (enemies && this.removeEnemyModel) {
+                // 注意：单敌人模式下 transientState.enemies 是 []（truthy），必须用 length>0 区分，
+                // 否则会误走多敌人分支（removeEnemyModel 空操作 + autoSelectNextTarget）导致不倒地、不关窗
+                if (enemies && enemies.length > 0 && this.removeEnemyModel) {
                     this.removeEnemyModel(targetIndex);
                     if (this.allEnemiesDefeated()) {
                         this.processAllEnemiesDefeated();
