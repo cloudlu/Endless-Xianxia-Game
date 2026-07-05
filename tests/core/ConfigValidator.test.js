@@ -71,13 +71,15 @@ describe('ConfigValidator', () => {
         expect(errors.filter(e => e.includes('realm0_dead_field'))).toHaveLength(0);
     });
 
-    it('realmSkills id 重复报错；levels 数量非 4 告警', () => {
+    it('realmSkills id 重复报错；levels>4 告警（<4 级不告警）', () => {
         const m = goodMetadata();
         m.realmSkills.push({ id: 'powerStrike', levels: [{}, {}] }); // 重复 id
-        m.realmSkills.push({ id: 'threeLevel', levels: [{}, {}, {}] }); // 非 4 级
+        m.realmSkills.push({ id: 'fiveLevel', levels: [{}, {}, {}, {}, {}] }); // >4 级
+        m.realmSkills.push({ id: 'twoLevel', levels: [{}, {}] }); // <4 级，不应告警
         const { errors, warnings } = ConfigValidator.validate(m, {});
         expect(errors.some(e => e.includes('powerStrike') && e.includes('重复'))).toBe(true);
-        expect(warnings.some(w => w.includes('threeLevel'))).toBe(true);
+        expect(warnings.some(w => w.includes('fiveLevel'))).toBe(true);
+        expect(warnings.some(w => w.includes('twoLevel'))).toBe(false);
     });
 
     it('dropRates 概率越界报错', () => {

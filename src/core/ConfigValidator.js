@@ -92,8 +92,10 @@ class ConfigValidator {
             skillIdSet.add(t.id);
             if (!Array.isArray(t.levels) || t.levels.length === 0) {
                 errors.push(`realmSkills[${t.id}] 缺少 levels`);
-            } else if (t.levels.length !== 4) {
-                warnings.push(`realmSkills[${t.id}] levels=${t.levels.length}（引擎 targeting 表硬编 4 级，非 4 级可能无 targeting 元数据）`);
+            } else if (t.levels.length > 4) {
+                // 引擎 targeting 表每境界仅 4 个条目；技能 <4 级只是少用几个条目(安全)，
+                // >4 级时第 5 级起拿不到 targeting 元数据（真正的问题）。
+                warnings.push(`realmSkills[${t.id}] levels=${t.levels.length}（>4，超出 targeting 表，第 5 级起无 targeting 元数据）`);
             }
         }
 
