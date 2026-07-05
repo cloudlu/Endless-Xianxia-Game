@@ -97,19 +97,23 @@ class ConfigValidator {
             }
         }
 
-        // 6. storyTrigger 引用：mainStoryQuests 中的 storyTrigger 必须在 storyScenes 存在
+        // 6. storyTrigger 引用：验证【真正被消费的路径】。
+        // mainStoryQuests[].storyTrigger 是死字段（仅 q.name 被 mainQuest.js:1228 用于命名查找，
+        // 从不触发剧情）；运行时实际触发的是 generateQuestFromTemplate 为 boss 任务生成的
+        // `r{realm}_boss_{bossName}`（mainQuest.js:125,578）。校验后者是否有对应 scene。
         const scenes = metadata.storyScenes?.scenes || storyData?.mainStoryScenes || {};
         const sceneKeySet = new Set(Object.keys(scenes));
-        if (metadata.mainStoryQuests && typeof metadata.mainStoryQuests === 'object') {
-            for (const realmKey of Object.keys(metadata.mainStoryQuests)) {
-                const quests = metadata.mainStoryQuests[realmKey];
-                if (!Array.isArray(quests)) continue;
-                for (const q of quests) {
-                    if (q.storyTrigger && !sceneKeySet.has(q.storyTrigger)) {
-                        errors.push(`mainStoryQuests[${realmKey}] 任务 ${q.id} storyTrigger "${q.storyTrigger}" 在 storyScenes 中不存在`);
+        const rt2 = metadata.questTemplateConfig?.realmThemes;
+        if (Array.isArray(rt2)) {
+            rt2.forEach((theme, realm) => {
+                if (!Array.isArray(theme?.bossPool)) return;
+                for (const bossName of theme.bossPool) {
+                    const key = `r${realm}_boss_${bossName}`;
+                    if (!sceneKeySet.has(key)) {
+                        warnings.push(`boss 剧情 scene 缺失: "${key}"（realm${realm} bossPool "${bossName}"，Boss 任务完成后将无法触发剧情）`);
                     }
                 }
-            }
+            });
         }
 
         // 7. dropRates 数值范围（每个品质概率有限非负）
