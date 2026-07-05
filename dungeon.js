@@ -398,6 +398,7 @@ class DungeonSystem {
             resourceMultiplier: (selectedEnemyType?.resourceMultiplier || 1) * (enemyType.type === 'boss' ? 2.0 : (enemyType.type === 'elite' ? 1.5 : 1)),
             position: { x: 0, z: 0, y: 0 },
             isFlying: false,
+            id: selectedEnemyType?.id || enemyType.name,
             baseName: enemyType.type === 'elite'
                 ? enemyType.name.replace(/^精英/, '')
                 : enemyType.type === 'boss'

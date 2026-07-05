@@ -23,9 +23,10 @@ class ConfigValidator {
             return ConfigValidator._finalize(errors, warnings);
         }
 
-        // 1. enemyTypes：name 唯一且非空
+        // 1. enemyTypes：name/id 唯一且非空
         const enemyTypes = Array.isArray(metadata.enemyTypes) ? metadata.enemyTypes : [];
         const enemyNameSet = new Set();
+        const enemyIdSet = new Set();
         for (const e of enemyTypes) {
             if (!e.name || typeof e.name !== 'string') {
                 errors.push(`enemyTypes 存在无 name 的条目: ${JSON.stringify(e).slice(0, 80)}`);
@@ -33,6 +34,11 @@ class ConfigValidator {
             }
             if (enemyNameSet.has(e.name)) errors.push(`enemyTypes name 重复: ${e.name}`);
             enemyNameSet.add(e.name);
+            if (e.id !== undefined) {
+                if (!e.id) errors.push(`enemyTypes[${e.name}] id 为空`);
+                else if (enemyIdSet.has(e.id)) errors.push(`enemyTypes id 重复: ${e.id}（name=${e.name}）`);
+                else enemyIdSet.add(e.id);
+            }
             // 数值卫生
             for (const f of ['baseHp', 'baseAttack', 'baseDefense', 'baseSpeed']) {
                 if (e[f] !== undefined && !(Number.isFinite(e[f]) && e[f] >= 0)) {

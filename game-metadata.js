@@ -181,6 +181,7 @@ const gameMetadata = {
     enemyTypes: [
         {
             name: "雪原狼",
+            id: "snow_wolf",
             baseHp: 28,
             baseAttack: 7,
             baseDefense: 2,
@@ -194,6 +195,7 @@ const gameMetadata = {
         },
         {
             name: "冰原熊",
+            id: "ice_bear",
             baseHp: 48,
             baseAttack: 11,
             baseDefense: 4,
@@ -207,6 +209,7 @@ const gameMetadata = {
         },
         {
             name: "冰霜巨人",
+            id: "frost_giant",
             baseHp: 48,
             baseAttack: 13,
             baseDefense: 5,
@@ -220,6 +223,7 @@ const gameMetadata = {
         },
         {
             name: "妖狐王",
+            id: "fox_demon_king",
             baseHp: 130,
             baseAttack: 48,
             baseDefense: 14,
@@ -234,6 +238,7 @@ const gameMetadata = {
         // 海滩地图敌人 (Realm 1)
         {
             name: "蟹将",
+            id: "crab_soldier",
             baseHp: 50,
             baseAttack: 9,
             baseDefense: 5,
@@ -247,6 +252,7 @@ const gameMetadata = {
         },
         {
             name: "虾兵",
+            id: "shrimp_soldier",
             baseHp: 42,
             baseAttack: 8,
             baseDefense: 4,
@@ -260,6 +266,7 @@ const gameMetadata = {
         },
         {
             name: "贝壳精",
+            id: "shell_spirit",
             baseHp: 52,
             baseAttack: 9,
             baseDefense: 5,
@@ -273,6 +280,7 @@ const gameMetadata = {
         },
         {
             name: "海马精",
+            id: "seahorse_spirit",
             baseHp: 65,
             baseAttack: 14,
             baseDefense: 6,
@@ -287,6 +295,7 @@ const gameMetadata = {
         // 平原地图敌人 (Realm 2)
         {
             name: "草原狮",
+            id: "plains_lion",
             baseHp: 80,
             baseAttack: 18,
             baseDefense: 8,
@@ -300,6 +309,7 @@ const gameMetadata = {
         },
         {
             name: "花豹",
+            id: "spotted_leopard",
             baseHp: 90,
             baseAttack: 19,
             baseDefense: 7,
@@ -313,6 +323,7 @@ const gameMetadata = {
         },
         {
             name: "草原之王",
+            id: "plains_king",
             baseHp: 140,
             baseAttack: 36,
             baseDefense: 12,
@@ -327,6 +338,7 @@ const gameMetadata = {
         // 峡谷地图敌人 (Realm 3)
         {
             name: "峡谷之风",
+            id: "canyon_wind",
             baseHp: 130,
             baseAttack: 25,
             baseDefense: 6,
@@ -340,6 +352,7 @@ const gameMetadata = {
         },
         {
             name: "秃鹫",
+            id: "vulture",
             baseHp: 130,
             baseAttack: 22,
             baseDefense: 7,
@@ -353,6 +366,7 @@ const gameMetadata = {
         },
         {
             name: "岩蛇",
+            id: "rock_snake",
             baseHp: 140,
             baseAttack: 24,
             baseDefense: 9,
@@ -366,6 +380,7 @@ const gameMetadata = {
         },
         {
             name: "峡谷领主",
+            id: "canyon_lord",
             baseHp: 64,
             baseAttack: 39,
             baseDefense: 14,
@@ -380,6 +395,7 @@ const gameMetadata = {
         // 沙漠地图敌人 (Realm 3)
         {
             name: "沙暴魔",
+            id: "sandstorm_demon",
             baseHp: 200,
             baseAttack: 34,
             baseDefense: 12,
@@ -393,6 +409,7 @@ const gameMetadata = {
         },
         {
             name: "仙人掌精",
+            id: "cactus_spirit",
             baseHp: 200,
             baseAttack: 28,
             baseDefense: 12,
@@ -406,6 +423,7 @@ const gameMetadata = {
         },
         {
             name: "沙漠之王",
+            id: "desert_king",
             baseHp: 65,
             baseAttack: 42,
             baseDefense: 14,
@@ -420,6 +438,7 @@ const gameMetadata = {
         // 湖泊地图敌人 (Realm 4)
         {
             name: "鲤鱼精",
+            id: "carp_spirit",
             baseHp: 150,
             baseAttack: 24,
             baseDefense: 8,
@@ -433,6 +452,7 @@ const gameMetadata = {
         },
         {
             name: "淡水鲛人",
+            id: "freshwater_merfolk",
             baseHp: 112,
             baseAttack: 35,
             baseDefense: 13,
@@ -446,6 +466,7 @@ const gameMetadata = {
         },
         {
             name: "湖妖",
+            id: "lake_demon",
             baseHp: 128,
             baseAttack: 38,
             baseDefense: 16,
@@ -459,6 +480,7 @@ const gameMetadata = {
         },
         {
             name: "湖怪",
+            id: "lake_monster",
             baseHp: 100,
             baseAttack: 54,
             baseDefense: 23,
@@ -472,6 +494,7 @@ const gameMetadata = {
         },
         {
             name: "湖龙王",
+            id: "lake_dragon_king",
             baseHp: 116,
             baseAttack: 61,
             baseDefense: 26,
@@ -486,6 +509,7 @@ const gameMetadata = {
         // 洞穴地图敌人 (Realm 5)
         {
             name: "暗影蝙蝠",
+            id: "shadow_bat",
             baseHp: 370,
             baseAttack: 54,
             baseDefense: 17,
@@ -499,6 +523,7 @@ const gameMetadata = {
         },
         {
             name: "地下蠕虫",
+            id: "underground_worm",
             baseHp: 490,
             baseAttack: 67,
             baseDefense: 27,
@@ -513,6 +538,7 @@ const gameMetadata = {
         // 仙境地图敌人 (Realm 5)
         {
             name: "云兽",
+            id: "cloud_beast",
             baseHp: 430,
             baseAttack: 63,
             baseDefense: 24,
@@ -526,6 +552,7 @@ const gameMetadata = {
         },
         {
             name: "山精",
+            id: "mountain_spirit",
             baseHp: 48,
             baseAttack: 12,
             baseDefense: 5,
@@ -539,6 +566,7 @@ const gameMetadata = {
         },
         {
             name: "水怪",
+            id: "water_monster",
             baseHp: 150,
             baseAttack: 24,
             baseDefense: 8,
@@ -552,6 +580,7 @@ const gameMetadata = {
         },
         {
             name: "火灵",
+            id: "fire_spirit",
             baseHp: 200,
             baseAttack: 28,
             baseDefense: 6,
@@ -565,6 +594,7 @@ const gameMetadata = {
         },
         {
             name: "土妖",
+            id: "earth_demon",
             baseHp: 170,
             baseAttack: 54,
             baseDefense: 25,
@@ -578,6 +608,7 @@ const gameMetadata = {
         },
         {
             name: "风魔",
+            id: "wind_demon",
             baseHp: 360,
             baseAttack: 48,
             baseDefense: 10,
@@ -591,6 +622,7 @@ const gameMetadata = {
         },
         {
             name: "雷兽",
+            id: "thunder_beast",
             baseHp: 116,
             baseAttack: 53,
             baseDefense: 13,
@@ -604,6 +636,7 @@ const gameMetadata = {
         },
         {
             name: "山妖",
+            id: "mountain_demon",
             baseHp: 32,
             baseAttack: 8,
             baseDefense: 3,
@@ -617,6 +650,7 @@ const gameMetadata = {
         },
         {
             name: "岩怪",
+            id: "rock_monster",
             baseHp: 45,
             baseAttack: 18,
             baseDefense: 7,
@@ -630,6 +664,7 @@ const gameMetadata = {
         },
         {
             name: "神雕",
+            id: "divine_eagle",
             baseHp: 36,
             baseAttack: 9,
             baseDefense: 3,
@@ -643,6 +678,7 @@ const gameMetadata = {
         },
         {
             name: "石精",
+            id: "stone_spirit",
             baseHp: 40,
             baseAttack: 15,
             baseDefense: 6,
@@ -656,6 +692,7 @@ const gameMetadata = {
         },
         {
             name: "山魈",
+            id: "mountain_goblin",
             baseHp: 40,
             baseAttack: 10,
             baseDefense: 4,
@@ -669,6 +706,7 @@ const gameMetadata = {
         },
         {
             name: "树精",
+            id: "tree_spirit",
             baseHp: 280,
             baseAttack: 28,
             baseDefense: 12,
@@ -682,6 +720,7 @@ const gameMetadata = {
         },
         {
             name: "花妖",
+            id: "flower_demon",
             baseHp: 200,
             baseAttack: 30,
             baseDefense: 8,
@@ -695,6 +734,7 @@ const gameMetadata = {
         },
         {
             name: "狐仙",
+            id: "fox_fairy",
             baseHp: 250,
             baseAttack: 32,
             baseDefense: 9,
@@ -708,6 +748,7 @@ const gameMetadata = {
         },
         {
             name: "鹿灵",
+            id: "deer_spirit",
             baseHp: 160,
             baseAttack: 34,
             baseDefense: 10,
@@ -721,6 +762,7 @@ const gameMetadata = {
         },
         {
             name: "木怪",
+            id: "wood_monster",
             baseHp: 110,
             baseAttack: 38,
             baseDefense: 14,
@@ -734,6 +776,7 @@ const gameMetadata = {
         },
         {
             name: "藤蔓怪",
+            id: "vine_monster",
             baseHp: 180,
             baseAttack: 26,
             baseDefense: 12,
@@ -747,6 +790,7 @@ const gameMetadata = {
         },
         {
             name: "森林蜘蛛",
+            id: "forest_spider",
             baseHp: 160,
             baseAttack: 32,
             baseDefense: 8,
@@ -760,6 +804,7 @@ const gameMetadata = {
         },
         {
             name: "花仙子",
+            id: "flower_fairy",
             baseHp: 130,
             baseAttack: 28,
             baseDefense: 6,
@@ -773,6 +818,7 @@ const gameMetadata = {
         },
         {
             name: "森林守护者",
+            id: "forest_guardian",
             baseHp: 104,
             baseAttack: 34,
             baseDefense: 19,
@@ -786,6 +832,7 @@ const gameMetadata = {
         },
         {
             name: "蛟蛇",
+            id: "jiao_snake",
             baseHp: 180,
             baseAttack: 28,
             baseDefense: 12,
@@ -799,6 +846,7 @@ const gameMetadata = {
         },
         {
             name: "龟妖",
+            id: "turtle_demon",
             baseHp: 220,
             baseAttack: 20,
             baseDefense: 18,
@@ -812,6 +860,7 @@ const gameMetadata = {
         },
         {
             name: "鱼精",
+            id: "fish_spirit",
             baseHp: 75,
             baseAttack: 16,
             baseDefense: 6,
@@ -825,6 +874,7 @@ const gameMetadata = {
         },
         {
             name: "水仙",
+            id: "water_fairy",
             baseHp: 96,
             baseAttack: 44,
             baseDefense: 14,
@@ -838,6 +888,7 @@ const gameMetadata = {
         },
         {
             name: "沙妖",
+            id: "sand_demon",
             baseHp: 180,
             baseAttack: 32,
             baseDefense: 15,
@@ -851,6 +902,7 @@ const gameMetadata = {
         },
         {
             name: "蝎精",
+            id: "scorpion_spirit",
             baseHp: 190,
             baseAttack: 32,
             baseDefense: 14,
@@ -864,6 +916,7 @@ const gameMetadata = {
         },
         {
             name: "蛇怪",
+            id: "snake_monster",
             baseHp: 60,
             baseAttack: 16,
             baseDefense: 3,
@@ -877,6 +930,7 @@ const gameMetadata = {
         },
         {
             name: "沙漠巨蜥",
+            id: "desert_lizard",
             baseHp: 210,
             baseAttack: 30,
             baseDefense: 16,
@@ -890,6 +944,7 @@ const gameMetadata = {
         },
         {
             name: "沙虫",
+            id: "sand_worm",
             baseHp: 80,
             baseAttack: 13,
             baseDefense: 5,
@@ -903,6 +958,7 @@ const gameMetadata = {
         },
         {
             name: "洞穴蝙蝠",
+            id: "cave_bat",
             baseHp: 76,
             baseAttack: 42,
             baseDefense: 8,
@@ -916,6 +972,7 @@ const gameMetadata = {
         },
         {
             name: "蜘蛛精",
+            id: "spider_spirit",
             baseHp: 90,
             baseAttack: 45,
             baseDefense: 10,
@@ -929,6 +986,7 @@ const gameMetadata = {
         },
         {
             name: "蚯蚓怪",
+            id: "earthworm_monster",
             baseHp: 120,
             baseAttack: 38,
             baseDefense: 14,
@@ -942,6 +1000,7 @@ const gameMetadata = {
         },
         {
             name: "洞穴幽灵",
+            id: "cave_ghost",
             baseHp: 80,
             baseAttack: 48,
             baseDefense: 8,
@@ -955,6 +1014,7 @@ const gameMetadata = {
         },
         {
             name: "熔岩巨兽",
+            id: "lava_behemoth",
             baseHp: 420,
             baseAttack: 38,
             baseDefense: 18,
@@ -968,6 +1028,7 @@ const gameMetadata = {
         },
         {
             name: "凤凰",
+            id: "phoenix",
             baseHp: 124,
             baseAttack: 52,
             baseDefense: 12,
@@ -981,6 +1042,7 @@ const gameMetadata = {
         },
         {
             name: "火凤凰",
+            id: "fire_phoenix",
             baseHp: 110,
             baseAttack: 54,
             baseDefense: 13,
@@ -994,6 +1056,7 @@ const gameMetadata = {
         },
         {
             name: "熔岩史莱姆",
+            id: "lava_slime",
             baseHp: 180,
             baseAttack: 24,
             baseDefense: 10,
@@ -1007,6 +1070,7 @@ const gameMetadata = {
         },
         {
             name: "火焰精",
+            id: "flame_spirit",
             baseHp: 320,
             baseAttack: 38,
             baseDefense: 10,
@@ -1020,6 +1084,7 @@ const gameMetadata = {
         },
         {
             name: "火山领主",
+            id: "volcano_lord",
             baseHp: 144,
             baseAttack: 56,
             baseDefense: 22,
@@ -1033,6 +1098,7 @@ const gameMetadata = {
         },
         {
             name: "仙鹤",
+            id: "crane",
             baseHp: 280,
             baseAttack: 38,
             baseDefense: 8,
@@ -1046,6 +1112,7 @@ const gameMetadata = {
         },
         {
             name: "麒麟",
+            id: "qilin",
             baseHp: 40,
             baseAttack: 16,
             baseDefense: 6,
@@ -1059,6 +1126,7 @@ const gameMetadata = {
         },
         {
             name: "龙王",
+            id: "dragon_king",
             baseHp: 170,
             baseAttack: 35,
             baseDefense: 15,
@@ -1072,6 +1140,7 @@ const gameMetadata = {
         },
         {
             name: "风神",
+            id: "wind_god",
             baseHp: 420,
             baseAttack: 60,
             baseDefense: 14,
@@ -1085,6 +1154,7 @@ const gameMetadata = {
         },
         {
             name: "天将",
+            id: "heavenly_general",
             baseHp: 480,
             baseAttack: 64,
             baseDefense: 20,
@@ -1098,6 +1168,7 @@ const gameMetadata = {
         },
         {
             name: "仙人",
+            id: "immortal",
             baseHp: 450,
             baseAttack: 62,
             baseDefense: 14,
@@ -1111,6 +1182,7 @@ const gameMetadata = {
         },
         {
             name: "天女",
+            id: "heavenly_maiden",
             baseHp: 240,
             baseAttack: 34,
             baseDefense: 6,
@@ -1124,6 +1196,7 @@ const gameMetadata = {
         },
         {
             name: "元始天尊",
+            id: "yuanshi_tianzun",
             baseHp: 176,
             baseAttack: 66,
             baseDefense: 28,
@@ -1138,6 +1211,7 @@ const gameMetadata = {
         // ========== 副本专用敌人 ==========
         {
             name: "矿石怪",
+            id: "ore_monster",
             baseHp: 55,
             baseAttack: 12,
             baseDefense: 8,
@@ -1151,6 +1225,7 @@ const gameMetadata = {
         },
         {
             name: "矿工幽灵",
+            id: "miner_ghost",
             baseHp: 45,
             baseAttack: 15,
             baseDefense: 5,
@@ -1164,6 +1239,7 @@ const gameMetadata = {
         },
         {
             name: "精英石巨人",
+            id: "elite_stone_giant",
             baseHp: 120,
             baseAttack: 28,
             baseDefense: 15,
@@ -1177,6 +1253,7 @@ const gameMetadata = {
         },
         {
             name: "花仙子",
+            id: "flower_fairy_2",
             baseHp: 42,
             baseAttack: 11,
             baseDefense: 4,
@@ -1190,6 +1267,7 @@ const gameMetadata = {
         },
         {
             name: "千年树妖",
+            id: "millennial_tree_demon",
             baseHp: 130,
             baseAttack: 30,
             baseDefense: 12,
@@ -1203,6 +1281,7 @@ const gameMetadata = {
         },
         {
             name: "铁甲兽",
+            id: "iron_armor_beast",
             baseHp: 65,
             baseAttack: 14,
             baseDefense: 10,
@@ -1216,6 +1295,7 @@ const gameMetadata = {
         },
         {
             name: "矿石魔",
+            id: "ore_demon",
             baseHp: 58,
             baseAttack: 16,
             baseDefense: 9,
@@ -1229,6 +1309,7 @@ const gameMetadata = {
         },
         {
             name: "熔岩怪",
+            id: "lava_monster",
             baseHp: 70,
             baseAttack: 18,
             baseDefense: 11,
@@ -1242,6 +1323,7 @@ const gameMetadata = {
         },
         {
             name: "熔岩巨人",
+            id: "lava_giant",
             baseHp: 140,
             baseAttack: 32,
             baseDefense: 16,
@@ -1256,6 +1338,7 @@ const gameMetadata = {
         // ========== 以下是原有的敌人 ==========
         {
             name: "海妖",
+            id: "sea_demon",
             baseHp: 120,
             baseAttack: 25,
             baseDefense: 11,
@@ -1269,6 +1352,7 @@ const gameMetadata = {
         },
         {
             name: "海怪",
+            id: "sea_monster",
             baseHp: 150,
             baseAttack: 30,
             baseDefense: 13,
@@ -1282,6 +1366,7 @@ const gameMetadata = {
         },
         {
             name: "鲛人",
+            id: "merfolk",
             baseHp: 100,
             baseAttack: 20,
             baseDefense: 9,
@@ -1295,6 +1380,7 @@ const gameMetadata = {
         },
         {
             name: "草原狼",
+            id: "plains_wolf",
             baseHp: 55,
             baseAttack: 16,
             baseDefense: 4,
@@ -1308,6 +1394,7 @@ const gameMetadata = {
         },
         {
             name: "野牛精",
+            id: "wild_ox_spirit",
             baseHp: 75,
             baseAttack: 14,
             baseDefense: 6,
@@ -1321,6 +1408,7 @@ const gameMetadata = {
         },
         {
             name: "鹰妖",
+            id: "eagle_demon",
             baseHp: 50,
             baseAttack: 16,
             baseDefense: 3,
@@ -1334,6 +1422,7 @@ const gameMetadata = {
         },
         {
             name: "草原巨兽",
+            id: "plains_behemoth",
             baseHp: 110,
             baseAttack: 23,
             baseDefense: 10,
@@ -1347,6 +1436,7 @@ const gameMetadata = {
         },
         {
             name: "风狼",
+            id: "wind_wolf",
             baseHp: 60,
             baseAttack: 17,
             baseDefense: 4,
@@ -1360,6 +1450,7 @@ const gameMetadata = {
         },
         {
             name: "游侠",
+            id: "ranger",
             baseHp: 65,
             baseAttack: 18,
             baseDefense: 5,
@@ -1373,6 +1464,7 @@ const gameMetadata = {
         },
         {
             name: "峡谷巨鹰",
+            id: "canyon_eagle",
             baseHp: 90,
             baseAttack: 20,
             baseDefense: 6,
@@ -1386,6 +1478,7 @@ const gameMetadata = {
         },
         {
             name: "石巨人",
+            id: "stone_giant",
             baseHp: 130,
             baseAttack: 19,
             baseDefense: 12,
@@ -1399,6 +1492,7 @@ const gameMetadata = {
         },
         {
             name: "峡谷蜥蜴",
+            id: "canyon_lizard",
             baseHp: 85,
             baseAttack: 17,
             baseDefense: 8,
@@ -1412,6 +1506,7 @@ const gameMetadata = {
         },
         {
             name: "鹰王",
+            id: "eagle_king",
             baseHp: 100,
             baseAttack: 22,
             baseDefense: 7,

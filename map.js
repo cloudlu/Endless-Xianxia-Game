@@ -882,6 +882,7 @@ EndlessCultivationGame.prototype.createEnemy = function(enemyDistribution, enemy
         position: { x, z, y: flyHeight },
         isFlying: isFlyingEnemy,
         baseName: selectedEnemyType.name,
+        id: selectedEnemyType.id || selectedEnemyType.name,
         cellIndex: i
     };
 };
@@ -1912,6 +1913,7 @@ EndlessCultivationGame.prototype.forceSpawnQuestBoss = function() {
         position: { x: enemyX, z: enemyZ, y: flyHeight },
         isFlying: isFlyingEnemy,
         baseName: selectedEnemyType.name,
+        id: selectedEnemyType.id || selectedEnemyType.name,
         cellIndex: cellIndex,
         questBoss: true // 标记为任务Boss
     };
