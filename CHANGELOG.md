@@ -5,6 +5,34 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 并且本项目遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [Unreleased] - 2026-07
+
+### 新增
+- 🛡️ **ConfigValidator 启动配置自检**（src/core/ConfigValidator.js）—— 启动期校验 metadata 引用完整性，report-only 不阻断。首跑即挖出花仙子 name 碰撞等潜伏问题。
+- 🧪 **属性封顶 STAT_CAPS** —— 暴击≤0.75/闪避≤0.50/命中≤0.95/暴抗≤0.60，防叠加破平衡。
+- 🆔 **enemyTypes 加 id 字段**（95 条）并带到运行时实例，为内容扩展铺路。
+- 📜 **balance-review 文档**（docs/systems/balance-review-2026-07.md）—— 含演算证据与分级处置。
+
+### 修复
+- 🔴 **充值码可重复兑换** —— 改为 用户×档位 一次性（vip.redeemedCodes）。
+- 🔴 **/api/save 零校验** —— vip 服务端权威、jade 以 totalRecharged 为天花板、过滤 NaN/负数；关闭首次存档注入漏洞。
+- 🔴 **processSkillEffect multiplier 运算符优先级 bug** —— 缺省 multiplier 时恒打 1 伤害。
+- 🔴 **save/load URL 写死 localhost:3002** —— 改相对路径，修复部署即坏。
+- 🔴 **allStatsBonus buff 死路径** —— tempAttackBonus/tempDefenseBonus 此前算了从不消费，现于 getActualStats 按 mul_pct 应用。
+- 🔴 **VIP 加成烘焙进装备缓存** —— 拆到 getActualStats 统一应用，消除脏数据 + 裸体玩家加成为 0。
+- 🔴 **突破石 r2+ F2P 死胡同** —— 配置化掉落（normal=0/elite=3%/Boss 境界递增），精英怪成 F2P 主通道；多敌人路径补发突破石。
+- **花仙子 enemyTypes name 碰撞** —— 强版改名百花仙子。
+- **战斗测试 RNG 抖动** —— 确定性 Math.random + restoreMocks，10/10 稳定。
+
+### 变更
+- 🧹 **删除 ~296 行死代码** —— game.js 中被 combatlogic.js 覆盖的 enemyDefeated/playerDefeated/processBuffs/processBuffDecay 包装器及空 stub、调试残留（I10）。
+- **VIP 加成显示一致性** —— getStatsBreakdown 的 final 字段对齐实际生效路径。
+- 修复 analyze_balance.js 正则（被 id 字段打断）。
+- 更新 remote URL 至改名后的 Endless-Xianxia-Game。
+
+### 测试
+- 测试用例 328 → 354（新增 ConfigValidator、statCaps、breakthroughDrop 等）。
+
 ## [1.22] - 2026-03-23
 
 ### 新增

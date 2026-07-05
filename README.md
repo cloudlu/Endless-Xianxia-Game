@@ -374,19 +374,27 @@ CombatContextBuilder  上下文层：把 game 对象转成纯数据
 src/combat/CombatEngine.js  纯函数层：伤害/命中/暴击计算，无副作用、可测试
 ```
 
-- 战斗核心计算（16 个方法）已迁至 [src/combat/CombatEngine.js](src/combat/CombatEngine.js)
+- 战斗核心计算已迁至 [src/combat/CombatEngine.js](src/combat/CombatEngine.js)
 - 副作用与 UI 方法按设计保留在 `combatlogic.js`
 - 详见 [docs/refactor/](docs/refactor/) 下迁移报告
+- ⚠️ **迁移未完全生效**：`attackEnemy` 等已切到 CombatEngine，但 `enemyDefeated`/`playerDefeated`/`processBuffsAtTurnStart`/`processBuffDecay` 因 combatlogic.js 同名 prototype 覆盖，实际仍跑老 inline 路径（相应的 game.js 包装器死代码已清理）。后续真正切到 CombatEngine 是未尽事项。
 
 ### 事件驱动 UI
 - [src/core/EventManager.js](src/core/EventManager.js) - 事件总线
 - [src/ui/UIManager.js](src/ui/UIManager.js) - 细粒度 UI 更新 + 节流，替代高频全量刷新
 - 任务、日常、收藏、装备、升级、突破等系统均通过事件解耦
 
+### 启动配置自检
+- [src/core/ConfigValidator.js](src/core/ConfigValidator.js) - 启动时校验 metadata 引用完整性（enemyTypes 唯一性、mapEnemyMapping/dungeons 引用存在、boss 剧情 scene 存在、技能树 levels、数值范围），report-only 不阻断。曾一举挖出花仙子 name 碰撞等潜伏问题。
+
+### 属性封顶
+- `EndlessCultivationGame.STAT_CAPS` 对暴击率(≤0.75)/闪避(≤0.50)/命中(≤0.95)/暴抗(≤0.60) 封顶，防装备+境界+VIP+buff 叠加破平衡。
+
 ### 已知技术债
-- `game.js` 仍是 ~8700 行的「上帝类」，是后续拆分的重点
+- `game.js` 仍是 ~8400 行的「上帝类」，是后续拆分的重点
 - 后端用 JSON 文件存储，存在并发写入风险，不可横向扩展
 - 大体积 3D 模型（如 75MB 原始 glb）已 gitignore，应改用 Git LFS 或 CDN
+- 战斗确定性（种子化 RNG）、暴击/minDamage 公式不对称等见 [docs/systems/balance-review-2026-07.md](docs/systems/balance-review-2026-07.md)
 
 ---
 
