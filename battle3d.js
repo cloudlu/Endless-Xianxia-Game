@@ -3957,6 +3957,10 @@ EndlessCultivationGame.prototype.playPetDeathAnimation = function() {
 };
 // 设置宠物血条能量条
 EndlessCultivationGame.prototype._setupPetHealthBars = function(petGroup, scale) {
+    // 幂等：先销毁上一套血条，杜绝 GLB 回退路径下旧血条变孤儿导致重复显示
+    if (this.battle3D.petHealthBar) { this.battle3D.petHealthBar.dispose(); this.battle3D.petHealthBar = null; }
+    if (this.battle3D.petEnergyBar) { this.battle3D.petEnergyBar.dispose(); this.battle3D.petEnergyBar = null; }
+
     const petHpBar = this.createHealthBar(0xff0000);
     petHpBar.scaling.x = 0.5 / scale;
     petHpBar.scaling.y = 1.0 / scale;
@@ -4047,6 +4051,7 @@ EndlessCultivationGame.prototype.playPetAttackAnimation = function(onHit) {
     const rushRange = (targetX - originalX) * 0.6;
     const startTime = Date.now();
     const duration = 400;
+    let hitFired = false;  // 命中去重标志（对齐 playAttackAnimation，避免区间窗口被掉帧跳过）
 
     this.audioSystem?.playSound('attack-sound', 0.6, 100);
 
@@ -4064,15 +4069,19 @@ EndlessCultivationGame.prototype.playPetAttackAnimation = function(onHit) {
             pet.position.x = peakX - Math.sin(returnProgress * Math.PI / 2) * rushRange;
         }
 
-        if (progress >= 0.35 && progress < 0.45) {
-            if (onHit) onHit();
-            onHit = null;
+        // 命中点：单边阈值 + hitFired 去重（即便某帧从 0.3 跳到 0.9 也一定触发）
+        if (!hitFired && progress >= 0.35) {
+            hitFired = true;
+            if (onHit) { onHit(); onHit = null; }
         }
 
         if (progress < 1) {
             requestAnimationFrame(animate);
         } else {
             pet.position.x = originalX;
+            // 兜底：极端掉帧/后台标签导致 onHit 从未触发时，结束时补一次，
+            // 保证伤害结算与敌人死亡处理一定执行（修复"宠物击杀不倒地"）
+            if (!hitFired && onHit) { onHit(); onHit = null; }
         }
     };
 
