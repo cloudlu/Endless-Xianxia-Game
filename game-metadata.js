@@ -803,8 +803,8 @@ const gameMetadata = {
             image: "https://neeko-copilot.bytedance.net/api/text2image?prompt=cartoon%20forest%20spider%2C%20chinese%20xianxia%20style%2C%20cute%20style%2C%20simple%20background&size=512x512"
         },
         {
-            name: "花仙子",
-            id: "flower_fairy",
+            name: "百花仙子",
+            id: "hundred_flower_fairy",
             baseHp: 130,
             baseAttack: 28,
             baseDefense: 6,
@@ -1253,7 +1253,7 @@ const gameMetadata = {
         },
         {
             name: "花仙子",
-            id: "flower_fairy_2",
+            id: "flower_fairy",
             baseHp: 42,
             baseAttack: 11,
             baseDefense: 4,
@@ -1528,7 +1528,7 @@ const gameMetadata = {
         "xianxia-canyon": ["峡谷巨鹰", "石巨人", "峡谷之风", "岩怪", "峡谷蜥蜴", "鹰王", "秃鹫", "岩蛇", "峡谷领主"],
         "xianxia-desert": ["沙妖", "蝎精", "蛇怪", "沙漠巨蜥", "沙虫", "沙暴魔", "土妖", "仙人掌精", "沙漠之王"],
         "xianxia-lake": ["水怪", "蛟蛇", "龟妖", "鲤鱼精", "水仙", "淡水鲛人", "湖妖", "湖怪", "湖龙王"],
-        "xianxia-forest": ["树精", "花妖", "狐仙", "鹿灵", "木怪", "藤蔓怪", "森林蜘蛛", "花仙子", "妖狐王", "森林守护者"],
+        "xianxia-forest": ["树精", "花妖", "狐仙", "鹿灵", "木怪", "藤蔓怪", "森林蜘蛛", "百花仙子", "妖狐王", "森林守护者"],
         "xianxia-volcano": ["火灵", "熔岩史莱姆", "火焰精", "熔岩巨兽", "火凤凰", "凤凰", "火山领主"],
         "xianxia-cave": ["洞穴蝙蝠", "蜘蛛精", "蚯蚓怪", "洞穴幽灵", "土妖", "岩怪", "石精", "暗影蝙蝠", "地下蠕虫"],
         "xianxia-heaven": ["天女", "仙鹤", "云兽", "雷兽", "风神", "天将", "仙人", "元始天尊"]
